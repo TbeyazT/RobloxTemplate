@@ -2,7 +2,7 @@
 local StoryAdapter = {}
 
 local ReactRoblox = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packages'):FindFirstChild('ReactRoblox'))
-local ProfileService = require(script.Parent.Parent:FindFirstChild('Services'):FindFirstChild('ProfileService'):FindFirstChild('Client'))
+local ProfileService = require(script.Parent.Parent:FindFirstChild('Controllers'):FindFirstChild('ProfileController'):FindFirstChild('Client'))
 
 type ReactNode = any
 

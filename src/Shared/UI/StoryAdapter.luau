@@ -2,7 +2,7 @@
 local StoryAdapter = {}
 
 local ReactRoblox = require("@Pckgs/ReactRoblox")
-local ProfileService = require("@Shared/Services/ProfileService/Client")
+local ProfileService = require("@Shared/Controllers/ProfileController/Client")
 
 type ReactNode = any
 

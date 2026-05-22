@@ -15,79 +15,7 @@ local IS_SERVER = RunService:IsServer()
 local PREFIX = IS_SERVER and "[Framework-Server]" or "[Framework-Client]"
 local TARGET_NAME = IS_SERVER and "Server" or "Client"
 
-local SEARCH_DIRS = {
-	Shared:WaitForChild("Services"),
-}
-
-local function _loadSingleModule(folder: Folder)
-	local moduleName = folder.Name
-	if Framework._modules[moduleName] then return Framework._modules[moduleName] end
-
-	local foundModule = nil
-	for _, child in ipairs(folder:GetChildren()) do
-		if child:IsA("ModuleScript") and child.Name:match(TARGET_NAME) then
-			foundModule = child
-			break
-		end
-	end
-
-	if not foundModule then return nil end
-
-	local moduleData
-	local success, err = xpcall(function()
-		moduleData = require(foundModule)::any
-	end, debug.traceback)
-
-	if not (success and type(moduleData) == "table") then
-		warn(string.format("%s ❌ Lazy Load Error in '%s':\n%s", PREFIX, moduleName, tostring(err)))
-		return nil
-	end
-
-	Framework._modules[moduleName] = moduleData
-
-	local initFunc = moduleData.Init or moduleData.init
-	if type(initFunc) == "function" then
-		xpcall(function() initFunc(moduleData) end, function(e)
-			warn(string.format("%s ❌ Lazy Init Error in %s:\n%s", PREFIX, moduleName, tostring(e)))
-		end)
-	end
-
-	local startFunc = moduleData.Start or moduleData.start
-	if type(startFunc) == "function" then
-		task.spawn(function()
-			xpcall(function() startFunc(moduleData) end, function(e)
-				warn(string.format("%s ❌ Lazy Start Error in %s:\n%s", PREFIX, moduleName, tostring(e)))
-			end)
-		end)
-	end
-
-	print(string.format("%s ⚡ Lazy Loaded: %s", PREFIX, moduleName))
-
-	if not IS_SERVER and not Framework._uiInitDone then
-		Framework._uiInitDone = true
-		UIInit:Init()
-	end
-
-	return moduleData
-end
-
-local function _lazyBoot(name: string)
-	if Framework._hasStarted or Framework._modules[name] or not RunService:IsStudio() then
-		return
-	end
-
-	for _, directory in ipairs(SEARCH_DIRS) do
-		local folder = directory:FindFirstChild(name)
-		if folder and folder:IsA("Folder") then
-			_loadSingleModule(folder)
-			break
-		end
-	end
-end
-
 function Framework.Get(name: string): any
-	_lazyBoot(name) 
-
 	local found = Framework._modules[name]
 	if not found then
 		warn(string.format("⚠️ %s: Could not find module named '%s'\n%s", PREFIX, name, debug.traceback()))
@@ -96,8 +24,6 @@ function Framework.Get(name: string): any
 end
 
 function Framework.WaitFor(name: string): any
-	_lazyBoot(name) 
-
 	if Framework._modules[name] then return Framework._modules[name] end
 
 	local startWait = os.clock()
