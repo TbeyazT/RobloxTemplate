@@ -5,7 +5,10 @@ event DataLoaded = {
     from: Server,
     type: Reliable,
     call: SingleAsync,
-    data: map { [string.utf8]: unknown }
+    data: struct {
+        Player: Instance,
+        Data: map { [string.utf8]: unknown }
+    }
 }
 
 event DataUpdated = {
@@ -13,6 +16,7 @@ event DataUpdated = {
     type: Reliable,
     call: ManyAsync,
     data: struct {
+        Player: Instance,
         Key: string.utf8,
         Value: unknown
     }
@@ -23,7 +27,7 @@ event PlayAudio = {
     call: SingleAsync,
     data: struct {
         SoundName: string.utf8,
-        properties: struct {}
+        properties: unknown
     }
 }
 
@@ -59,59 +63,257 @@ funct Rebirth = {
     args: boolean,
     rets: unknown
 }
--- Lobby stuff
-
-event RequestJoin = {
-    from: Client,
-    type: Reliable,
-    call: SingleAsync,
-    data: u16,
-}
-
-event RequestLeave = {
-    from: Client,
-    type: Reliable,
-    call: SingleAsync,
-}
-
-event ChangeLobbySetting = {
+--brainrot
+event AssignBrainrot = {
     from: Client,
     type: Reliable,
     call: SingleAsync,
     data: struct {
-        MaxPlayers: u8,
-        Map: string.utf8,
+        ID: string.utf8,
+        plotNumber: unknown
     }
 }
 
-event UpdateLobby = {
+event UnassignBrainrot = {
+    from: Client,
+    type: Reliable,
+    call: SingleAsync,
+    data: struct {
+        ID: string.utf8
+    }
+}
+
+funct ClaimBrainrotCash = {
+    call: Async,
+    args: struct {
+        ID: string.utf8
+    },
+    rets: struct {
+        Success: boolean,
+        Amount: u32
+    }
+}
+
+funct UpgradeBrainrot = {
+    call: Async,
+    args: string.utf8,
+    rets:string.utf8
+}
+
+--plot
+event PlotAssigned = {
+    from: Server,
+    type: Reliable,
+    call: ManyAsync, 
+    data: struct {
+        UserId: f64,
+        PlotCFrame: CFrame
+    }
+}
+
+event PlotRemoved = {
     from: Server,
     type: Reliable,
     call: ManyAsync,
     data: struct {
-        Lobby: u16,
-        MaxPlayers: u8,
-        Map: string.utf8,
-        Players: Instance[],
-        Leader: Instance?,
-        TimeLeft: u8?
+        UserId: f64
     }
 }
 
-event StartLobby = {
+event BuyBaseUpgrade = {
+    from: Client,
+    type:Reliable,
+    call: SingleAsync,
+}
+--food
+funct StartEatingFood = {
+    call: Async,
+    args: string.utf8,
+    rets: boolean
+}
+
+event StopEatingFood = {
     from: Client,
     type: Reliable,
     call: SingleAsync
 }
 
-funct EquipTower = {
-    call: Async,
-    args: string.utf8,
-    rets: boolean
+event FoodInitialData = {
+    from: Server,
+    type: Reliable,
+    call: SingleAsync,
+    data: struct {
+        ID: string.utf8,
+        Name: string.utf8,
+        Capacity: f64,
+        MaxCapacity: f64,
+        CFrame: CFrame,
+        Eater: Instance?
+    }[]
 }
 
-funct UnequipTower = {
-    call: Async,
-    args: string.utf8,
-    rets: boolean
+event FoodSpawned = {
+    from: Server,
+    type: Reliable,
+    call: ManyAsync,
+    data: struct {
+        ID: string.utf8,
+        Name: string.utf8,
+        Capacity: f64,
+        MaxCapacity: f64,
+        CFrame: CFrame,
+        Eater: Instance?
+    }
+}
+
+event FoodDespawned = {
+    from: Server,
+    type: Reliable,
+    call: ManyAsync,
+    data: struct {
+        ID: string.utf8
+    }
+}
+
+event FoodCapacityUpdated = {
+    from: Server,
+    type: Reliable,
+    call: ManyAsync,
+    data: struct {
+        ID: string.utf8,
+        Capacity: f64
+    }[]
+}
+
+event FoodEaterUpdated = {
+    from: Server,
+    type: Reliable,
+    call: ManyAsync,
+    data: struct {
+        ID: string.utf8,
+        Eater: Instance?
+    }
+}
+
+--wall stuff
+event HitWall = {
+    from: Client,
+    type: Reliable,
+    call: SingleAsync
+}
+
+event WallDamaged = {
+    from: Server,
+    type: Reliable,
+    call: ManyAsync,
+    data: struct {
+        WallName: string.utf8,
+        Durability: f64,
+        Max: f64
+    }
+}
+
+event WallDestroyed = {
+    from: Server,
+    type: Reliable,
+    call: ManyAsync,
+    data: struct {
+        WallName: string.utf8
+    }
+}
+
+event WallRepaired = {
+    from: Server,
+    type: Reliable,
+    call: ManyAsync,
+    data: struct {
+        WallName: string.utf8
+    }
+}
+
+event GrabBrainrot = {
+    from: Client,
+    type: Reliable,
+    call: SingleAsync,
+    data: struct {
+        ID: string.utf8
+    }
+}
+
+event WorldBrainrotInitialData = {
+    from: Server,
+    type: Reliable,
+    call: SingleAsync,
+    data: struct {
+        ID: string.utf8,
+        Name: string.utf8,
+        CFrame: CFrame,
+        DespawnTime: f64,
+        AreaID: unknown
+    }[]
+}
+
+event WorldBrainrotSpawned = {
+    from: Server,
+    type: Reliable,
+    call: ManyAsync,
+    data: struct {
+        ID: string.utf8,
+        Name: string.utf8,
+        CFrame: CFrame,
+        DespawnTime: f64,
+        AreaID: unknown
+    }
+}
+
+event WorldBrainrotDespawned = {
+    from: Server,
+    type: Reliable,
+    call: ManyAsync,
+    data: struct {
+        ID: string.utf8
+    }
+}
+
+event PlayerCarryingBrainrot = {
+    from: Server,
+    type: Reliable,
+    call: ManyAsync,
+    data: struct {
+        Player: Instance,
+        CarriedList: string.utf8[]
+    }
+}
+
+event PlayerDroppedBrainrot = {
+    from: Server,
+    type: Reliable,
+    call: ManyAsync,
+    data: struct {
+        Player: Instance
+    }
+}
+
+event DropBrainrot = {
+    from: Client,
+    type: Reliable,
+    call: ManyAsync,
+}
+
+--product
+event PromptProduct = {
+    from: Client,
+    type: Reliable,
+    call: SingleAsync,
+    data: string.utf8,
+}
+--STATS
+event UpgradePlayerStat = {
+    from:Client,
+    type:Reliable,
+    call:SingleAsync,
+    data: struct {
+        StatName: string.utf8,
+        Amount: u32
+    }
 }

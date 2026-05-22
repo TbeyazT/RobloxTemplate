@@ -134,27 +134,96 @@ if not RunService:IsRunning() then
 	local noop = function() end
 	return table.freeze({
 		SendEvents = noop,
-		UpdateLobby = table.freeze({
+		WorldBrainrotSpawned = table.freeze({
 			Fire = noop,
 			FireAll = noop,
 			FireExcept = noop,
 			FireList = noop,
 			FireSet = noop
 		}),
-		UnequipTower = table.freeze({
+		WorldBrainrotInitialData = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
+		}),
+		WorldBrainrotDespawned = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
+		}),
+		WallRepaired = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
+		}),
+		WallDestroyed = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
+		}),
+		WallDamaged = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
+		}),
+		UpgradePlayerStat = table.freeze({
 			SetCallback = noop
 		}),
-		StartLobby = table.freeze({
+		UpgradeBrainrot = table.freeze({
 			SetCallback = noop
 		}),
-		RequestLeave = table.freeze({
+		UnassignBrainrot = table.freeze({
 			SetCallback = noop
 		}),
-		RequestJoin = table.freeze({
+		StopEatingFood = table.freeze({
+			SetCallback = noop
+		}),
+		StartEatingFood = table.freeze({
 			SetCallback = noop
 		}),
 		Rebirth = table.freeze({
 			SetCallback = noop
+		}),
+		PromptProduct = table.freeze({
+			SetCallback = noop
+		}),
+		PlotRemoved = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
+		}),
+		PlotAssigned = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
+		}),
+		PlayerDroppedBrainrot = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
+		}),
+		PlayerCarryingBrainrot = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
 		}),
 		PlayAudio = table.freeze({
 			Fire = noop,
@@ -170,11 +239,52 @@ if not RunService:IsRunning() then
 			FireList = noop,
 			FireSet = noop
 		}),
-		EquipTower = table.freeze({
+		HitWall = table.freeze({
 			SetCallback = noop
+		}),
+		GrabBrainrot = table.freeze({
+			SetCallback = noop
+		}),
+		FoodSpawned = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
+		}),
+		FoodInitialData = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
+		}),
+		FoodEaterUpdated = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
+		}),
+		FoodDespawned = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
+		}),
+		FoodCapacityUpdated = table.freeze({
+			Fire = noop,
+			FireAll = noop,
+			FireExcept = noop,
+			FireList = noop,
+			FireSet = noop
 		}),
 		EditTutorial = table.freeze({
 			SetCallback = noop
+		}),
+		DropBrainrot = table.freeze({
+			On = noop
 		}),
 		DataUpdated = table.freeze({
 			Fire = noop,
@@ -190,10 +300,16 @@ if not RunService:IsRunning() then
 			FireList = noop,
 			FireSet = noop
 		}),
+		ClaimBrainrotCash = table.freeze({
+			SetCallback = noop
+		}),
 		ChangeSetting = table.freeze({
 			SetCallback = noop
 		}),
-		ChangeLobbySetting = table.freeze({
+		BuyBaseUpgrade = table.freeze({
+			SetCallback = noop
+		}),
+		AssignBrainrot = table.freeze({
 			SetCallback = noop
 		}),
 	}) :: Events
@@ -245,7 +361,8 @@ end
 
 RunService.Heartbeat:Connect(SendEvents)
 
-local reliable_events = table.create(9)
+local reliable_events = table.create(15)
+reliable_events[6] = {}
 reliable.OnServerEvent:Connect(function(player, buff, inst)
 	incoming_buff = buff
 	incoming_inst = inst
@@ -254,108 +371,154 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 	local len = buffer.len(buff)
 	while incoming_read < len do
 		local id = buffer.readu8(buff, read(1))
-		if id == 3 then -- StartLobby
+		if id == 8 then -- UpgradePlayerStat
+			local value
+			value = {  }
+			local len_1 = buffer.readu16(incoming_buff, read(2))
+			value["StatName"] = buffer.readstring(incoming_buff, read(len_1), len_1)
+			assert(utf8.len(value["StatName"]) ~= nil, "value is not valid utf-8")
+			value["Amount"] = buffer.readu32(incoming_buff, read(4))
+			if reliable_events[8] then
+				task.spawn(reliable_events[8], player, value)
+			end
+		elseif id == 1 then -- UnassignBrainrot
+			local value
+			value = {  }
+			local len_2 = buffer.readu16(incoming_buff, read(2))
+			value["ID"] = buffer.readstring(incoming_buff, read(len_2), len_2)
+			assert(utf8.len(value["ID"]) ~= nil, "value is not valid utf-8")
+			if reliable_events[1] then
+				task.spawn(reliable_events[1], player, value)
+			end
+		elseif id == 3 then -- StopEatingFood
 			local value
 			if reliable_events[3] then
 				task.spawn(reliable_events[3], player, value)
 			end
-		elseif id == 1 then -- RequestLeave
-			local value
-			if reliable_events[1] then
-				task.spawn(reliable_events[1], player, value)
-			end
-		elseif id == 0 then -- RequestJoin
-			local value
-			value = buffer.readu16(incoming_buff, read(2))
-			if reliable_events[0] then
-				task.spawn(reliable_events[0], player, value)
-			end
-		elseif id == 2 then -- ChangeLobbySetting
-			local value
-			value = {  }
-			value["MaxPlayers"] = buffer.readu8(incoming_buff, read(1))
-			local len_1 = buffer.readu16(incoming_buff, read(2))
-			value["Map"] = buffer.readstring(incoming_buff, read(len_1), len_1)
-			assert(utf8.len(value["Map"]) ~= nil, "value is not valid utf-8")
-			if reliable_events[2] then
-				task.spawn(reliable_events[2], player, value)
-			end
-		elseif id == 8 then -- UnequipTower
-			local call_id = buffer.readu8(buff, read(1))
-			local value
-			local len_2 = buffer.readu16(incoming_buff, read(2))
-			value = buffer.readstring(incoming_buff, read(len_2), len_2)
-			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
-			if reliable_events[8] then
-				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[8](player_2, value_1)
-					load_player(player_2)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 9)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
-					local bool_1 = 0
-					local bool_1_pos_1 = alloc(1)
-					if ret_1 then
-						bool_1 = bit32.bor(bool_1, 0b0000000000000001)
-					end
-					buffer.writeu8(outgoing_buff, bool_1_pos_1, bool_1)
-					player_map[player_2] = save()
-				end, player, call_id, value)
-			end
-		elseif id == 6 then -- Rebirth
-			local call_id = buffer.readu8(buff, read(1))
-			local value
-			local bool_2 = buffer.readu8(incoming_buff, read(1))
-			value = bit32.btest(bool_2, 0b0000000000000001)
-			if reliable_events[6] then
-				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[6](player_2, value_1)
-					load_player(player_2)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 7)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
-					local bool_3 = 0
-					local bool_3_pos_1 = alloc(1)
-					if ret_1 ~= nil then
-						bool_3 = bit32.bor(bool_3, 0b0000000000000001)
-						table.insert(outgoing_inst, ret_1)
-					end
-					buffer.writeu8(outgoing_buff, bool_3_pos_1, bool_3)
-					player_map[player_2] = save()
-				end, player, call_id, value)
-			end
-		elseif id == 7 then -- EquipTower
-			local call_id = buffer.readu8(buff, read(1))
+		elseif id == 7 then -- PromptProduct
 			local value
 			local len_3 = buffer.readu16(incoming_buff, read(2))
 			value = buffer.readstring(incoming_buff, read(len_3), len_3)
 			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
 			if reliable_events[7] then
+				task.spawn(reliable_events[7], player, value)
+			end
+		elseif id == 4 then -- HitWall
+			local value
+			if reliable_events[4] then
+				task.spawn(reliable_events[4], player, value)
+			end
+		elseif id == 5 then -- GrabBrainrot
+			local value
+			value = {  }
+			local len_4 = buffer.readu16(incoming_buff, read(2))
+			value["ID"] = buffer.readstring(incoming_buff, read(len_4), len_4)
+			assert(utf8.len(value["ID"]) ~= nil, "value is not valid utf-8")
+			if reliable_events[5] then
+				task.spawn(reliable_events[5], player, value)
+			end
+		elseif id == 6 then -- DropBrainrot
+			local value
+			for _, cb in reliable_events[6] do
+				task.spawn(cb, player, value)
+			end
+		elseif id == 2 then -- BuyBaseUpgrade
+			local value
+			if reliable_events[2] then
+				task.spawn(reliable_events[2], player, value)
+			end
+		elseif id == 0 then -- AssignBrainrot
+			local value
+			local bool_1 = buffer.readu8(incoming_buff, read(1))
+			value = {  }
+			local len_5 = buffer.readu16(incoming_buff, read(2))
+			value["ID"] = buffer.readstring(incoming_buff, read(len_5), len_5)
+			assert(utf8.len(value["ID"]) ~= nil, "value is not valid utf-8")
+			if bit32.btest(bool_1, 0b0000000000000001) then
+				incoming_ipos = incoming_ipos + 1
+				value["plotNumber"] = incoming_inst[incoming_ipos]
+			else
+				value["plotNumber"] = nil
+			end
+			if reliable_events[0] then
+				task.spawn(reliable_events[0], player, value)
+			end
+		elseif id == 13 then -- UpgradeBrainrot
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			local len_6 = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len_6), len_6)
+			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
+			if reliable_events[13] then
 				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[7](player_2, value_1)
+					local ret_1 = reliable_events[13](player_2, value_1)
 					load_player(player_2)
 					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 8)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 23)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local len_7 = #ret_1
+					assert(utf8.len(ret_1) ~= nil, "value is not valid utf-8")
+					alloc(2)
+					buffer.writeu16(outgoing_buff, outgoing_apos, len_7)
+					alloc(len_7)
+					buffer.writestring(outgoing_buff, outgoing_apos, ret_1, len_7)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 14 then -- StartEatingFood
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			local len_8 = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len_8), len_8)
+			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
+			if reliable_events[14] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[14](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 24)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_2 = 0
+					local bool_2_pos_1 = alloc(1)
+					if ret_1 then
+						bool_2 = bit32.bor(bool_2, 0b0000000000000001)
+					end
+					buffer.writeu8(outgoing_buff, bool_2_pos_1, bool_2)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 11 then -- Rebirth
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			local bool_3 = buffer.readu8(incoming_buff, read(1))
+			value = bit32.btest(bool_3, 0b0000000000000001)
+			if reliable_events[11] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[11](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 21)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
 					local bool_4 = 0
 					local bool_4_pos_1 = alloc(1)
-					if ret_1 then
+					if ret_1 ~= nil then
 						bool_4 = bit32.bor(bool_4, 0b0000000000000001)
+						table.insert(outgoing_inst, ret_1)
 					end
 					buffer.writeu8(outgoing_buff, bool_4_pos_1, bool_4)
 					player_map[player_2] = save()
 				end, player, call_id, value)
 			end
-		elseif id == 5 then -- EditTutorial
+		elseif id == 10 then -- EditTutorial
 			local call_id = buffer.readu8(buff, read(1))
 			local value
 			local bool_5 = buffer.readu8(incoming_buff, read(1))
 			value = {  }
-			local len_4 = buffer.readu16(incoming_buff, read(2))
-			value["Key"] = buffer.readstring(incoming_buff, read(len_4), len_4)
+			local len_9 = buffer.readu16(incoming_buff, read(2))
+			value["Key"] = buffer.readstring(incoming_buff, read(len_9), len_9)
 			assert(utf8.len(value["Key"]) ~= nil, "value is not valid utf-8")
 			if bit32.btest(bool_5, 0b0000000000000001) then
 				incoming_ipos = incoming_ipos + 1
@@ -363,37 +526,63 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 			else
 				value["Value"] = nil
 			end
-			if reliable_events[5] then
+			if reliable_events[10] then
 				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[5](player_2, value_1)
+					local ret_1 = reliable_events[10](player_2, value_1)
 					load_player(player_2)
 					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 6)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 20)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
 					player_map[player_2] = save()
 				end, player, call_id, value)
 			end
-		elseif id == 4 then -- ChangeSetting
+		elseif id == 12 then -- ClaimBrainrotCash
 			local call_id = buffer.readu8(buff, read(1))
 			local value
-			local len_5 = buffer.readu16(incoming_buff, read(2))
-			value = buffer.readstring(incoming_buff, read(len_5), len_5)
-			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
-			if reliable_events[4] then
+			value = {  }
+			local len_10 = buffer.readu16(incoming_buff, read(2))
+			value["ID"] = buffer.readstring(incoming_buff, read(len_10), len_10)
+			assert(utf8.len(value["ID"]) ~= nil, "value is not valid utf-8")
+			if reliable_events[12] then
 				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[4](player_2, value_1)
+					local ret_1 = reliable_events[12](player_2, value_1)
 					load_player(player_2)
 					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 5)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 22)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
 					local bool_6 = 0
 					local bool_6_pos_1 = alloc(1)
-					if ret_1 then
+					if ret_1["Success"] then
 						bool_6 = bit32.bor(bool_6, 0b0000000000000001)
 					end
+					alloc(4)
+					buffer.writeu32(outgoing_buff, outgoing_apos, ret_1["Amount"])
 					buffer.writeu8(outgoing_buff, bool_6_pos_1, bool_6)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 9 then -- ChangeSetting
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			local len_11 = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len_11), len_11)
+			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
+			if reliable_events[9] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[9](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 19)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local bool_7 = 0
+					local bool_7_pos_1 = alloc(1)
+					if ret_1 then
+						bool_7 = bit32.bor(bool_7, 0b0000000000000001)
+					end
+					buffer.writeu8(outgoing_buff, bool_7_pos_1, bool_7)
 					player_map[player_2] = save()
 				end, player, call_id, value)
 			end
@@ -407,89 +596,99 @@ table.freeze(polling_queues_unreliable)
 
 local returns = {
 	SendEvents = SendEvents,
-	UpdateLobby = {
+	WorldBrainrotSpawned = {
 		Fire = function(Player: Player, Value: ({
-			["Lobby"]: (number),
-			["MaxPlayers"]: (number),
-			["Map"]: (string),
-			["Players"]: ({ (Instance) }),
-			["Leader"]: ((Instance)?),
-			["TimeLeft"]: ((number)?),
+			["ID"]: (string),
+			["Name"]: (string),
+			["CFrame"]: (CFrame),
+			["DespawnTime"]: (number),
+			["AreaID"]: ((unknown)),
 		}))
 			load_player(Player)
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
-			local bool_7 = 0
-			local bool_7_pos_1 = alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
+			local bool_8 = 0
+			local bool_8_pos_1 = alloc(1)
+			local len_12 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, Value["Lobby"])
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, Value["MaxPlayers"])
-			local len_6 = #Value["Map"]
-			assert(utf8.len(Value["Map"]) ~= nil, "value is not valid utf-8")
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_12)
+			alloc(len_12)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_12)
+			local len_13 = #Value["Name"]
+			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_6)
-			alloc(len_6)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Map"], len_6)
-			local len_7 = #Value["Players"]
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_7)
-			for i_1 = 1, len_7 do
-				local val_1 = Value["Players"][i_1]
-				table.insert(outgoing_inst, val_1)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_13)
+			alloc(len_13)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_13)
+			local axis_1, angle_1 = Value["CFrame"]:ToAxisAngle()
+			axis_1 = axis_1 * angle_1
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_1.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_1.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_1.Z)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["DespawnTime"])
+			if Value["AreaID"] ~= nil then
+				bool_8 = bit32.bor(bool_8, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["AreaID"])
 			end
-			if Value["Leader"] ~= nil then
-				bool_7 = bit32.bor(bool_7, 0b0000000000000001)
-				table.insert(outgoing_inst, Value["Leader"])
-			end
-			if Value["TimeLeft"] ~= nil then
-				bool_7 = bit32.bor(bool_7, 0b0000000000000010)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TimeLeft"])
-			end
-			buffer.writeu8(outgoing_buff, bool_7_pos_1, bool_7)
+			buffer.writeu8(outgoing_buff, bool_8_pos_1, bool_8)
 			player_map[Player] = save()
 		end,
 		FireAll = function(Value: ({
-			["Lobby"]: (number),
-			["MaxPlayers"]: (number),
-			["Map"]: (string),
-			["Players"]: ({ (Instance) }),
-			["Leader"]: ((Instance)?),
-			["TimeLeft"]: ((number)?),
+			["ID"]: (string),
+			["Name"]: (string),
+			["CFrame"]: (CFrame),
+			["DespawnTime"]: (number),
+			["AreaID"]: ((unknown)),
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
-			local bool_8 = 0
-			local bool_8_pos_1 = alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
+			local bool_9 = 0
+			local bool_9_pos_1 = alloc(1)
+			local len_14 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, Value["Lobby"])
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, Value["MaxPlayers"])
-			local len_8 = #Value["Map"]
-			assert(utf8.len(Value["Map"]) ~= nil, "value is not valid utf-8")
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_14)
+			alloc(len_14)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_14)
+			local len_15 = #Value["Name"]
+			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_8)
-			alloc(len_8)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Map"], len_8)
-			local len_9 = #Value["Players"]
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_9)
-			for i_2 = 1, len_9 do
-				local val_2 = Value["Players"][i_2]
-				table.insert(outgoing_inst, val_2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_15)
+			alloc(len_15)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_15)
+			local axis_2, angle_2 = Value["CFrame"]:ToAxisAngle()
+			axis_2 = axis_2 * angle_2
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_2.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_2.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_2.Z)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["DespawnTime"])
+			if Value["AreaID"] ~= nil then
+				bool_9 = bit32.bor(bool_9, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["AreaID"])
 			end
-			if Value["Leader"] ~= nil then
-				bool_8 = bit32.bor(bool_8, 0b0000000000000001)
-				table.insert(outgoing_inst, Value["Leader"])
-			end
-			if Value["TimeLeft"] ~= nil then
-				bool_8 = bit32.bor(bool_8, 0b0000000000000010)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TimeLeft"])
-			end
-			buffer.writeu8(outgoing_buff, bool_8_pos_1, bool_8)
+			buffer.writeu8(outgoing_buff, bool_9_pos_1, bool_9)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				load_player(player)
@@ -500,45 +699,50 @@ local returns = {
 			end
 		end,
 		FireExcept = function(Except: Player, Value: ({
-			["Lobby"]: (number),
-			["MaxPlayers"]: (number),
-			["Map"]: (string),
-			["Players"]: ({ (Instance) }),
-			["Leader"]: ((Instance)?),
-			["TimeLeft"]: ((number)?),
+			["ID"]: (string),
+			["Name"]: (string),
+			["CFrame"]: (CFrame),
+			["DespawnTime"]: (number),
+			["AreaID"]: ((unknown)),
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
-			local bool_9 = 0
-			local bool_9_pos_1 = alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
+			local bool_10 = 0
+			local bool_10_pos_1 = alloc(1)
+			local len_16 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, Value["Lobby"])
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, Value["MaxPlayers"])
-			local len_10 = #Value["Map"]
-			assert(utf8.len(Value["Map"]) ~= nil, "value is not valid utf-8")
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_16)
+			alloc(len_16)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_16)
+			local len_17 = #Value["Name"]
+			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_10)
-			alloc(len_10)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Map"], len_10)
-			local len_11 = #Value["Players"]
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_11)
-			for i_3 = 1, len_11 do
-				local val_3 = Value["Players"][i_3]
-				table.insert(outgoing_inst, val_3)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_17)
+			alloc(len_17)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_17)
+			local axis_3, angle_3 = Value["CFrame"]:ToAxisAngle()
+			axis_3 = axis_3 * angle_3
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_3.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_3.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_3.Z)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["DespawnTime"])
+			if Value["AreaID"] ~= nil then
+				bool_10 = bit32.bor(bool_10, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["AreaID"])
 			end
-			if Value["Leader"] ~= nil then
-				bool_9 = bit32.bor(bool_9, 0b0000000000000001)
-				table.insert(outgoing_inst, Value["Leader"])
-			end
-			if Value["TimeLeft"] ~= nil then
-				bool_9 = bit32.bor(bool_9, 0b0000000000000010)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TimeLeft"])
-			end
-			buffer.writeu8(outgoing_buff, bool_9_pos_1, bool_9)
+			buffer.writeu8(outgoing_buff, bool_10_pos_1, bool_10)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				if player ~= Except then
@@ -551,45 +755,50 @@ local returns = {
 			end
 		end,
 		FireList = function(List: { [unknown]: Player }, Value: ({
-			["Lobby"]: (number),
-			["MaxPlayers"]: (number),
-			["Map"]: (string),
-			["Players"]: ({ (Instance) }),
-			["Leader"]: ((Instance)?),
-			["TimeLeft"]: ((number)?),
+			["ID"]: (string),
+			["Name"]: (string),
+			["CFrame"]: (CFrame),
+			["DespawnTime"]: (number),
+			["AreaID"]: ((unknown)),
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
-			local bool_10 = 0
-			local bool_10_pos_1 = alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
+			local bool_11 = 0
+			local bool_11_pos_1 = alloc(1)
+			local len_18 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, Value["Lobby"])
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, Value["MaxPlayers"])
-			local len_12 = #Value["Map"]
-			assert(utf8.len(Value["Map"]) ~= nil, "value is not valid utf-8")
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_18)
+			alloc(len_18)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_18)
+			local len_19 = #Value["Name"]
+			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_12)
-			alloc(len_12)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Map"], len_12)
-			local len_13 = #Value["Players"]
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_13)
-			for i_4 = 1, len_13 do
-				local val_4 = Value["Players"][i_4]
-				table.insert(outgoing_inst, val_4)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_19)
+			alloc(len_19)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_19)
+			local axis_4, angle_4 = Value["CFrame"]:ToAxisAngle()
+			axis_4 = axis_4 * angle_4
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_4.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_4.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_4.Z)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["DespawnTime"])
+			if Value["AreaID"] ~= nil then
+				bool_11 = bit32.bor(bool_11, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["AreaID"])
 			end
-			if Value["Leader"] ~= nil then
-				bool_10 = bit32.bor(bool_10, 0b0000000000000001)
-				table.insert(outgoing_inst, Value["Leader"])
-			end
-			if Value["TimeLeft"] ~= nil then
-				bool_10 = bit32.bor(bool_10, 0b0000000000000010)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TimeLeft"])
-			end
-			buffer.writeu8(outgoing_buff, bool_10_pos_1, bool_10)
+			buffer.writeu8(outgoing_buff, bool_11_pos_1, bool_11)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
 				load_player(player)
@@ -600,45 +809,50 @@ local returns = {
 			end
 		end,
 		FireSet = function(Set: { [Player]: any }, Value: ({
-			["Lobby"]: (number),
-			["MaxPlayers"]: (number),
-			["Map"]: (string),
-			["Players"]: ({ (Instance) }),
-			["Leader"]: ((Instance)?),
-			["TimeLeft"]: ((number)?),
+			["ID"]: (string),
+			["Name"]: (string),
+			["CFrame"]: (CFrame),
+			["DespawnTime"]: (number),
+			["AreaID"]: ((unknown)),
 		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
-			local bool_11 = 0
-			local bool_11_pos_1 = alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
+			local bool_12 = 0
+			local bool_12_pos_1 = alloc(1)
+			local len_20 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, Value["Lobby"])
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, Value["MaxPlayers"])
-			local len_14 = #Value["Map"]
-			assert(utf8.len(Value["Map"]) ~= nil, "value is not valid utf-8")
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_20)
+			alloc(len_20)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_20)
+			local len_21 = #Value["Name"]
+			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_14)
-			alloc(len_14)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Map"], len_14)
-			local len_15 = #Value["Players"]
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_15)
-			for i_5 = 1, len_15 do
-				local val_5 = Value["Players"][i_5]
-				table.insert(outgoing_inst, val_5)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_21)
+			alloc(len_21)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_21)
+			local axis_5, angle_5 = Value["CFrame"]:ToAxisAngle()
+			axis_5 = axis_5 * angle_5
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_5.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_5.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_5.Z)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["DespawnTime"])
+			if Value["AreaID"] ~= nil then
+				bool_12 = bit32.bor(bool_12, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["AreaID"])
 			end
-			if Value["Leader"] ~= nil then
-				bool_11 = bit32.bor(bool_11, 0b0000000000000001)
-				table.insert(outgoing_inst, Value["Leader"])
-			end
-			if Value["TimeLeft"] ~= nil then
-				bool_11 = bit32.bor(bool_11, 0b0000000000000010)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TimeLeft"])
-			end
-			buffer.writeu8(outgoing_buff, bool_11_pos_1, bool_11)
+			buffer.writeu8(outgoing_buff, bool_12_pos_1, bool_12)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for player in Set do
 				load_player(player)
@@ -649,15 +863,771 @@ local returns = {
 			end
 		end,
 	},
-	UnequipTower = {
-		SetCallback = function(Callback: (Player: Player, Value: (string)) -> ((boolean))): () -> ()
+	WorldBrainrotInitialData = {
+		Fire = function(Player: Player, Value: ({ ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["CFrame"]: (CFrame),
+			["DespawnTime"]: (number),
+			["AreaID"]: ((unknown)),
+		}) }))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
+			local len_22 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_22)
+			for i_1 = 1, len_22 do
+				local bool_13 = 0
+				local bool_13_pos_1 = alloc(1)
+				local val_1 = Value[i_1]
+				local len_23 = #val_1["ID"]
+				assert(utf8.len(val_1["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_23)
+				alloc(len_23)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_1["ID"], len_23)
+				local len_24 = #val_1["Name"]
+				assert(utf8.len(val_1["Name"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_24)
+				alloc(len_24)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_1["Name"], len_24)
+				local axis_6, angle_6 = val_1["CFrame"]:ToAxisAngle()
+				axis_6 = axis_6 * angle_6
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_1["CFrame"].Position.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_1["CFrame"].Position.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_1["CFrame"].Position.Z)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_6.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_6.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_6.Z)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_1["DespawnTime"])
+				if val_1["AreaID"] ~= nil then
+					bool_13 = bit32.bor(bool_13, 0b0000000000000001)
+					table.insert(outgoing_inst, val_1["AreaID"])
+				end
+				buffer.writeu8(outgoing_buff, bool_13_pos_1, bool_13)
+			end
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({ ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["CFrame"]: (CFrame),
+			["DespawnTime"]: (number),
+			["AreaID"]: ((unknown)),
+		}) }))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
+			local len_25 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_25)
+			for i_2 = 1, len_25 do
+				local bool_14 = 0
+				local bool_14_pos_1 = alloc(1)
+				local val_2 = Value[i_2]
+				local len_26 = #val_2["ID"]
+				assert(utf8.len(val_2["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_26)
+				alloc(len_26)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_2["ID"], len_26)
+				local len_27 = #val_2["Name"]
+				assert(utf8.len(val_2["Name"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_27)
+				alloc(len_27)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_2["Name"], len_27)
+				local axis_7, angle_7 = val_2["CFrame"]:ToAxisAngle()
+				axis_7 = axis_7 * angle_7
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_2["CFrame"].Position.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_2["CFrame"].Position.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_2["CFrame"].Position.Z)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_7.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_7.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_7.Z)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_2["DespawnTime"])
+				if val_2["AreaID"] ~= nil then
+					bool_14 = bit32.bor(bool_14, 0b0000000000000001)
+					table.insert(outgoing_inst, val_2["AreaID"])
+				end
+				buffer.writeu8(outgoing_buff, bool_14_pos_1, bool_14)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({ ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["CFrame"]: (CFrame),
+			["DespawnTime"]: (number),
+			["AreaID"]: ((unknown)),
+		}) }))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
+			local len_28 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_28)
+			for i_3 = 1, len_28 do
+				local bool_15 = 0
+				local bool_15_pos_1 = alloc(1)
+				local val_3 = Value[i_3]
+				local len_29 = #val_3["ID"]
+				assert(utf8.len(val_3["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_29)
+				alloc(len_29)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_3["ID"], len_29)
+				local len_30 = #val_3["Name"]
+				assert(utf8.len(val_3["Name"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_30)
+				alloc(len_30)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_3["Name"], len_30)
+				local axis_8, angle_8 = val_3["CFrame"]:ToAxisAngle()
+				axis_8 = axis_8 * angle_8
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_3["CFrame"].Position.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_3["CFrame"].Position.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_3["CFrame"].Position.Z)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_8.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_8.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_8.Z)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_3["DespawnTime"])
+				if val_3["AreaID"] ~= nil then
+					bool_15 = bit32.bor(bool_15, 0b0000000000000001)
+					table.insert(outgoing_inst, val_3["AreaID"])
+				end
+				buffer.writeu8(outgoing_buff, bool_15_pos_1, bool_15)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({ ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["CFrame"]: (CFrame),
+			["DespawnTime"]: (number),
+			["AreaID"]: ((unknown)),
+		}) }))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
+			local len_31 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_31)
+			for i_4 = 1, len_31 do
+				local bool_16 = 0
+				local bool_16_pos_1 = alloc(1)
+				local val_4 = Value[i_4]
+				local len_32 = #val_4["ID"]
+				assert(utf8.len(val_4["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_32)
+				alloc(len_32)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_4["ID"], len_32)
+				local len_33 = #val_4["Name"]
+				assert(utf8.len(val_4["Name"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_33)
+				alloc(len_33)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_4["Name"], len_33)
+				local axis_9, angle_9 = val_4["CFrame"]:ToAxisAngle()
+				axis_9 = axis_9 * angle_9
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_4["CFrame"].Position.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_4["CFrame"].Position.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_4["CFrame"].Position.Z)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_9.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_9.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_9.Z)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_4["DespawnTime"])
+				if val_4["AreaID"] ~= nil then
+					bool_16 = bit32.bor(bool_16, 0b0000000000000001)
+					table.insert(outgoing_inst, val_4["AreaID"])
+				end
+				buffer.writeu8(outgoing_buff, bool_16_pos_1, bool_16)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({ ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["CFrame"]: (CFrame),
+			["DespawnTime"]: (number),
+			["AreaID"]: ((unknown)),
+		}) }))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
+			local len_34 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_34)
+			for i_5 = 1, len_34 do
+				local bool_17 = 0
+				local bool_17_pos_1 = alloc(1)
+				local val_5 = Value[i_5]
+				local len_35 = #val_5["ID"]
+				assert(utf8.len(val_5["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_35)
+				alloc(len_35)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_5["ID"], len_35)
+				local len_36 = #val_5["Name"]
+				assert(utf8.len(val_5["Name"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_36)
+				alloc(len_36)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_5["Name"], len_36)
+				local axis_10, angle_10 = val_5["CFrame"]:ToAxisAngle()
+				axis_10 = axis_10 * angle_10
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_5["CFrame"].Position.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_5["CFrame"].Position.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_5["CFrame"].Position.Z)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_10.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_10.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_10.Z)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_5["DespawnTime"])
+				if val_5["AreaID"] ~= nil then
+					bool_17 = bit32.bor(bool_17, 0b0000000000000001)
+					table.insert(outgoing_inst, val_5["AreaID"])
+				end
+				buffer.writeu8(outgoing_buff, bool_17_pos_1, bool_17)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	WorldBrainrotDespawned = {
+		Fire = function(Player: Player, Value: ({
+			["ID"]: (string),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
+			local len_37 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_37)
+			alloc(len_37)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_37)
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			["ID"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
+			local len_38 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_38)
+			alloc(len_38)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_38)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			["ID"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
+			local len_39 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_39)
+			alloc(len_39)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_39)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({
+			["ID"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
+			local len_40 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_40)
+			alloc(len_40)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_40)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({
+			["ID"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
+			local len_41 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_41)
+			alloc(len_41)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_41)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	WallRepaired = {
+		Fire = function(Player: Player, Value: ({
+			["WallName"]: (string),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
+			local len_42 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_42)
+			alloc(len_42)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_42)
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			["WallName"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
+			local len_43 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_43)
+			alloc(len_43)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_43)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			["WallName"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
+			local len_44 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_44)
+			alloc(len_44)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_44)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({
+			["WallName"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
+			local len_45 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_45)
+			alloc(len_45)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_45)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({
+			["WallName"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
+			local len_46 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_46)
+			alloc(len_46)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_46)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	WallDestroyed = {
+		Fire = function(Player: Player, Value: ({
+			["WallName"]: (string),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+			local len_47 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_47)
+			alloc(len_47)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_47)
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			["WallName"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+			local len_48 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_48)
+			alloc(len_48)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_48)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			["WallName"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+			local len_49 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_49)
+			alloc(len_49)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_49)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({
+			["WallName"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+			local len_50 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_50)
+			alloc(len_50)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_50)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({
+			["WallName"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+			local len_51 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_51)
+			alloc(len_51)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_51)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	WallDamaged = {
+		Fire = function(Player: Player, Value: ({
+			["WallName"]: (string),
+			["Durability"]: (number),
+			["Max"]: (number),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
+			local len_52 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_52)
+			alloc(len_52)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_52)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Durability"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Max"])
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			["WallName"]: (string),
+			["Durability"]: (number),
+			["Max"]: (number),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
+			local len_53 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_53)
+			alloc(len_53)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_53)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Durability"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Max"])
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			["WallName"]: (string),
+			["Durability"]: (number),
+			["Max"]: (number),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
+			local len_54 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_54)
+			alloc(len_54)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_54)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Durability"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Max"])
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({
+			["WallName"]: (string),
+			["Durability"]: (number),
+			["Max"]: (number),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
+			local len_55 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_55)
+			alloc(len_55)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_55)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Durability"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Max"])
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({
+			["WallName"]: (string),
+			["Durability"]: (number),
+			["Max"]: (number),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
+			local len_56 = #Value["WallName"]
+			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_56)
+			alloc(len_56)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_56)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Durability"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Max"])
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	UpgradePlayerStat = {
+		SetCallback = function(Callback: (Player: Player, Value: ({
+			["StatName"]: (string),
+			["Amount"]: (number),
+		})) -> ()): () -> ()
 			reliable_events[8] = Callback
 			return function()
 				reliable_events[8] = nil
 			end
 		end,
 	},
-	StartLobby = {
+	UpgradeBrainrot = {
+		SetCallback = function(Callback: (Player: Player, Value: (string)) -> ((string))): () -> ()
+			reliable_events[13] = Callback
+			return function()
+				reliable_events[13] = nil
+			end
+		end,
+	},
+	UnassignBrainrot = {
+		SetCallback = function(Callback: (Player: Player, Value: ({
+			["ID"]: (string),
+		})) -> ()): () -> ()
+			reliable_events[1] = Callback
+			return function()
+				reliable_events[1] = nil
+			end
+		end,
+	},
+	StopEatingFood = {
 		SetCallback = function(Callback: (Player: Player) -> ()): () -> ()
 			reliable_events[3] = Callback
 			return function()
@@ -665,61 +1635,531 @@ local returns = {
 			end
 		end,
 	},
-	RequestLeave = {
-		SetCallback = function(Callback: (Player: Player) -> ()): () -> ()
-			reliable_events[1] = Callback
+	StartEatingFood = {
+		SetCallback = function(Callback: (Player: Player, Value: (string)) -> ((boolean))): () -> ()
+			reliable_events[14] = Callback
 			return function()
-				reliable_events[1] = nil
-			end
-		end,
-	},
-	RequestJoin = {
-		SetCallback = function(Callback: (Player: Player, Value: (number)) -> ()): () -> ()
-			reliable_events[0] = Callback
-			return function()
-				reliable_events[0] = nil
+				reliable_events[14] = nil
 			end
 		end,
 	},
 	Rebirth = {
 		SetCallback = function(Callback: (Player: Player, Value: (boolean)) -> (((unknown)))): () -> ()
-			reliable_events[6] = Callback
+			reliable_events[11] = Callback
 			return function()
-				reliable_events[6] = nil
+				reliable_events[11] = nil
+			end
+		end,
+	},
+	PromptProduct = {
+		SetCallback = function(Callback: (Player: Player, Value: (string)) -> ()): () -> ()
+			reliable_events[7] = Callback
+			return function()
+				reliable_events[7] = nil
+			end
+		end,
+	},
+	PlotRemoved = {
+		Fire = function(Player: Player, Value: ({
+			["UserId"]: (number),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 5)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["UserId"])
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			["UserId"]: (number),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 5)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["UserId"])
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			["UserId"]: (number),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 5)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["UserId"])
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({
+			["UserId"]: (number),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 5)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["UserId"])
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({
+			["UserId"]: (number),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 5)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["UserId"])
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	PlotAssigned = {
+		Fire = function(Player: Player, Value: ({
+			["UserId"]: (number),
+			["PlotCFrame"]: (CFrame),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["UserId"])
+			local axis_11, angle_11 = Value["PlotCFrame"]:ToAxisAngle()
+			axis_11 = axis_11 * angle_11
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_11.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_11.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_11.Z)
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			["UserId"]: (number),
+			["PlotCFrame"]: (CFrame),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["UserId"])
+			local axis_12, angle_12 = Value["PlotCFrame"]:ToAxisAngle()
+			axis_12 = axis_12 * angle_12
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_12.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_12.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_12.Z)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			["UserId"]: (number),
+			["PlotCFrame"]: (CFrame),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["UserId"])
+			local axis_13, angle_13 = Value["PlotCFrame"]:ToAxisAngle()
+			axis_13 = axis_13 * angle_13
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_13.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_13.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_13.Z)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({
+			["UserId"]: (number),
+			["PlotCFrame"]: (CFrame),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["UserId"])
+			local axis_14, angle_14 = Value["PlotCFrame"]:ToAxisAngle()
+			axis_14 = axis_14 * angle_14
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_14.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_14.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_14.Z)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({
+			["UserId"]: (number),
+			["PlotCFrame"]: (CFrame),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 4)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["UserId"])
+			local axis_15, angle_15 = Value["PlotCFrame"]:ToAxisAngle()
+			axis_15 = axis_15 * angle_15
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["PlotCFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_15.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_15.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_15.Z)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	PlayerDroppedBrainrot = {
+		Fire = function(Player: Player, Value: ({
+			["Player"]: (Instance),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 18)
+			table.insert(outgoing_inst, Value["Player"])
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			["Player"]: (Instance),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 18)
+			table.insert(outgoing_inst, Value["Player"])
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			["Player"]: (Instance),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 18)
+			table.insert(outgoing_inst, Value["Player"])
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({
+			["Player"]: (Instance),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 18)
+			table.insert(outgoing_inst, Value["Player"])
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({
+			["Player"]: (Instance),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 18)
+			table.insert(outgoing_inst, Value["Player"])
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	PlayerCarryingBrainrot = {
+		Fire = function(Player: Player, Value: ({
+			["Player"]: (Instance),
+			["CarriedList"]: ({ (string) }),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_57 = #Value["CarriedList"]
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_57)
+			for i_6 = 1, len_57 do
+				local val_6 = Value["CarriedList"][i_6]
+				local len_58 = #val_6
+				assert(utf8.len(val_6) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_58)
+				alloc(len_58)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_6, len_58)
+			end
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			["Player"]: (Instance),
+			["CarriedList"]: ({ (string) }),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_59 = #Value["CarriedList"]
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_59)
+			for i_7 = 1, len_59 do
+				local val_7 = Value["CarriedList"][i_7]
+				local len_60 = #val_7
+				assert(utf8.len(val_7) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_60)
+				alloc(len_60)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_7, len_60)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			["Player"]: (Instance),
+			["CarriedList"]: ({ (string) }),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_61 = #Value["CarriedList"]
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_61)
+			for i_8 = 1, len_61 do
+				local val_8 = Value["CarriedList"][i_8]
+				local len_62 = #val_8
+				assert(utf8.len(val_8) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_62)
+				alloc(len_62)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_8, len_62)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({
+			["Player"]: (Instance),
+			["CarriedList"]: ({ (string) }),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_63 = #Value["CarriedList"]
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_63)
+			for i_9 = 1, len_63 do
+				local val_9 = Value["CarriedList"][i_9]
+				local len_64 = #val_9
+				assert(utf8.len(val_9) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_64)
+				alloc(len_64)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_9, len_64)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({
+			["Player"]: (Instance),
+			["CarriedList"]: ({ (string) }),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_65 = #Value["CarriedList"]
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_65)
+			for i_10 = 1, len_65 do
+				local val_10 = Value["CarriedList"][i_10]
+				local len_66 = #val_10
+				assert(utf8.len(val_10) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_66)
+				alloc(len_66)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_10, len_66)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
 			end
 		end,
 	},
 	PlayAudio = {
 		Fire = function(Player: Player, Value: ({
 			["SoundName"]: (string),
-			["properties"]: ({
-			}),
+			["properties"]: ((unknown)),
 		}))
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
-			local len_16 = #Value["SoundName"]
+			local bool_18 = 0
+			local bool_18_pos_1 = alloc(1)
+			local len_67 = #Value["SoundName"]
 			assert(utf8.len(Value["SoundName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_16)
-			alloc(len_16)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_16)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_67)
+			alloc(len_67)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_67)
+			if Value["properties"] ~= nil then
+				bool_18 = bit32.bor(bool_18, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["properties"])
+			end
+			buffer.writeu8(outgoing_buff, bool_18_pos_1, bool_18)
 			player_map[Player] = save()
 		end,
 		FireAll = function(Value: ({
 			["SoundName"]: (string),
-			["properties"]: ({
-			}),
+			["properties"]: ((unknown)),
 		}))
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
-			local len_17 = #Value["SoundName"]
+			local bool_19 = 0
+			local bool_19_pos_1 = alloc(1)
+			local len_68 = #Value["SoundName"]
 			assert(utf8.len(Value["SoundName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_17)
-			alloc(len_17)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_17)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_68)
+			alloc(len_68)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_68)
+			if Value["properties"] ~= nil then
+				bool_19 = bit32.bor(bool_19, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["properties"])
+			end
+			buffer.writeu8(outgoing_buff, bool_19_pos_1, bool_19)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				load_player(player)
@@ -731,18 +2171,24 @@ local returns = {
 		end,
 		FireExcept = function(Except: Player, Value: ({
 			["SoundName"]: (string),
-			["properties"]: ({
-			}),
+			["properties"]: ((unknown)),
 		}))
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
-			local len_18 = #Value["SoundName"]
+			local bool_20 = 0
+			local bool_20_pos_1 = alloc(1)
+			local len_69 = #Value["SoundName"]
 			assert(utf8.len(Value["SoundName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_18)
-			alloc(len_18)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_18)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_69)
+			alloc(len_69)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_69)
+			if Value["properties"] ~= nil then
+				bool_20 = bit32.bor(bool_20, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["properties"])
+			end
+			buffer.writeu8(outgoing_buff, bool_20_pos_1, bool_20)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				if player ~= Except then
@@ -756,18 +2202,24 @@ local returns = {
 		end,
 		FireList = function(List: { [unknown]: Player }, Value: ({
 			["SoundName"]: (string),
-			["properties"]: ({
-			}),
+			["properties"]: ((unknown)),
 		}))
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
-			local len_19 = #Value["SoundName"]
+			local bool_21 = 0
+			local bool_21_pos_1 = alloc(1)
+			local len_70 = #Value["SoundName"]
 			assert(utf8.len(Value["SoundName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_19)
-			alloc(len_19)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_19)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_70)
+			alloc(len_70)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_70)
+			if Value["properties"] ~= nil then
+				bool_21 = bit32.bor(bool_21, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["properties"])
+			end
+			buffer.writeu8(outgoing_buff, bool_21_pos_1, bool_21)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
 				load_player(player)
@@ -779,18 +2231,24 @@ local returns = {
 		end,
 		FireSet = function(Set: { [Player]: any }, Value: ({
 			["SoundName"]: (string),
-			["properties"]: ({
-			}),
+			["properties"]: ((unknown)),
 		}))
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
-			local len_20 = #Value["SoundName"]
+			local bool_22 = 0
+			local bool_22_pos_1 = alloc(1)
+			local len_71 = #Value["SoundName"]
 			assert(utf8.len(Value["SoundName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_20)
-			alloc(len_20)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_20)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_71)
+			alloc(len_71)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_71)
+			if Value["properties"] ~= nil then
+				bool_22 = bit32.bor(bool_22, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["properties"])
+			end
+			buffer.writeu8(outgoing_buff, bool_22_pos_1, bool_22)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for player in Set do
 				load_player(player)
@@ -812,18 +2270,18 @@ local returns = {
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local bool_12 = 0
-			local bool_12_pos_1 = alloc(1)
-			local len_21 = #Value["Text"]
+			local bool_23 = 0
+			local bool_23_pos_1 = alloc(1)
+			local len_72 = #Value["Text"]
 			assert(utf8.len(Value["Text"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_21)
-			alloc(len_21)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_21)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_72)
+			alloc(len_72)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_72)
 			alloc(4)
 			buffer.writef32(outgoing_buff, outgoing_apos, Value["Duration"])
 			if Value["TextColor"] ~= nil then
-				bool_12 = bit32.bor(bool_12, 0b0000000000000001)
+				bool_23 = bit32.bor(bool_23, 0b0000000000000001)
 				alloc(1)
 				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].R * 255)
 				alloc(1)
@@ -832,17 +2290,17 @@ local returns = {
 				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].B * 255)
 			end
 			if Value["FrameScale"] ~= nil then
-				bool_12 = bit32.bor(bool_12, 0b0000000000000010)
+				bool_23 = bit32.bor(bool_23, 0b0000000000000010)
 				alloc(4)
 				buffer.writef32(outgoing_buff, outgoing_apos, Value["FrameScale"])
 			end
 			if Value["UseRichAnimation"] ~= nil then
-				bool_12 = bit32.bor(bool_12, 0b0000000000000100)
+				bool_23 = bit32.bor(bool_23, 0b0000000000000100)
 				if Value["UseRichAnimation"] then
-					bool_12 = bit32.bor(bool_12, 0b0000000000001000)
+					bool_23 = bit32.bor(bool_23, 0b0000000000001000)
 				end
 			end
-			buffer.writeu8(outgoing_buff, bool_12_pos_1, bool_12)
+			buffer.writeu8(outgoing_buff, bool_23_pos_1, bool_23)
 			player_map[Player] = save()
 		end,
 		FireAll = function(Value: ({
@@ -855,427 +2313,35 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local bool_13 = 0
-			local bool_13_pos_1 = alloc(1)
-			local len_22 = #Value["Text"]
-			assert(utf8.len(Value["Text"]) ~= nil, "value is not valid utf-8")
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_22)
-			alloc(len_22)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_22)
-			alloc(4)
-			buffer.writef32(outgoing_buff, outgoing_apos, Value["Duration"])
-			if Value["TextColor"] ~= nil then
-				bool_13 = bit32.bor(bool_13, 0b0000000000000001)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].R * 255)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].G * 255)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].B * 255)
-			end
-			if Value["FrameScale"] ~= nil then
-				bool_13 = bit32.bor(bool_13, 0b0000000000000010)
-				alloc(4)
-				buffer.writef32(outgoing_buff, outgoing_apos, Value["FrameScale"])
-			end
-			if Value["UseRichAnimation"] ~= nil then
-				bool_13 = bit32.bor(bool_13, 0b0000000000000100)
-				if Value["UseRichAnimation"] then
-					bool_13 = bit32.bor(bool_13, 0b0000000000001000)
-				end
-			end
-			buffer.writeu8(outgoing_buff, bool_13_pos_1, bool_13)
-			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
-			for _, player in Players:GetPlayers() do
-				load_player(player)
-				alloc(used)
-				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
-				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
-				player_map[player] = save()
-			end
-		end,
-		FireExcept = function(Except: Player, Value: ({
-			["Text"]: (string),
-			["Duration"]: (number),
-			["TextColor"]: ((Color3)?),
-			["FrameScale"]: ((number)?),
-			["UseRichAnimation"]: ((boolean)?),
-		}))
-			load_empty()
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local bool_14 = 0
-			local bool_14_pos_1 = alloc(1)
-			local len_23 = #Value["Text"]
-			assert(utf8.len(Value["Text"]) ~= nil, "value is not valid utf-8")
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_23)
-			alloc(len_23)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_23)
-			alloc(4)
-			buffer.writef32(outgoing_buff, outgoing_apos, Value["Duration"])
-			if Value["TextColor"] ~= nil then
-				bool_14 = bit32.bor(bool_14, 0b0000000000000001)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].R * 255)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].G * 255)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].B * 255)
-			end
-			if Value["FrameScale"] ~= nil then
-				bool_14 = bit32.bor(bool_14, 0b0000000000000010)
-				alloc(4)
-				buffer.writef32(outgoing_buff, outgoing_apos, Value["FrameScale"])
-			end
-			if Value["UseRichAnimation"] ~= nil then
-				bool_14 = bit32.bor(bool_14, 0b0000000000000100)
-				if Value["UseRichAnimation"] then
-					bool_14 = bit32.bor(bool_14, 0b0000000000001000)
-				end
-			end
-			buffer.writeu8(outgoing_buff, bool_14_pos_1, bool_14)
-			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
-			for _, player in Players:GetPlayers() do
-				if player ~= Except then
-					load_player(player)
-					alloc(used)
-					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
-					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
-					player_map[player] = save()
-				end
-			end
-		end,
-		FireList = function(List: { [unknown]: Player }, Value: ({
-			["Text"]: (string),
-			["Duration"]: (number),
-			["TextColor"]: ((Color3)?),
-			["FrameScale"]: ((number)?),
-			["UseRichAnimation"]: ((boolean)?),
-		}))
-			load_empty()
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local bool_15 = 0
-			local bool_15_pos_1 = alloc(1)
-			local len_24 = #Value["Text"]
-			assert(utf8.len(Value["Text"]) ~= nil, "value is not valid utf-8")
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_24)
-			alloc(len_24)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_24)
-			alloc(4)
-			buffer.writef32(outgoing_buff, outgoing_apos, Value["Duration"])
-			if Value["TextColor"] ~= nil then
-				bool_15 = bit32.bor(bool_15, 0b0000000000000001)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].R * 255)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].G * 255)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].B * 255)
-			end
-			if Value["FrameScale"] ~= nil then
-				bool_15 = bit32.bor(bool_15, 0b0000000000000010)
-				alloc(4)
-				buffer.writef32(outgoing_buff, outgoing_apos, Value["FrameScale"])
-			end
-			if Value["UseRichAnimation"] ~= nil then
-				bool_15 = bit32.bor(bool_15, 0b0000000000000100)
-				if Value["UseRichAnimation"] then
-					bool_15 = bit32.bor(bool_15, 0b0000000000001000)
-				end
-			end
-			buffer.writeu8(outgoing_buff, bool_15_pos_1, bool_15)
-			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
-			for _, player in List do
-				load_player(player)
-				alloc(used)
-				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
-				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
-				player_map[player] = save()
-			end
-		end,
-		FireSet = function(Set: { [Player]: any }, Value: ({
-			["Text"]: (string),
-			["Duration"]: (number),
-			["TextColor"]: ((Color3)?),
-			["FrameScale"]: ((number)?),
-			["UseRichAnimation"]: ((boolean)?),
-		}))
-			load_empty()
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
-			local bool_16 = 0
-			local bool_16_pos_1 = alloc(1)
-			local len_25 = #Value["Text"]
-			assert(utf8.len(Value["Text"]) ~= nil, "value is not valid utf-8")
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_25)
-			alloc(len_25)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_25)
-			alloc(4)
-			buffer.writef32(outgoing_buff, outgoing_apos, Value["Duration"])
-			if Value["TextColor"] ~= nil then
-				bool_16 = bit32.bor(bool_16, 0b0000000000000001)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].R * 255)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].G * 255)
-				alloc(1)
-				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].B * 255)
-			end
-			if Value["FrameScale"] ~= nil then
-				bool_16 = bit32.bor(bool_16, 0b0000000000000010)
-				alloc(4)
-				buffer.writef32(outgoing_buff, outgoing_apos, Value["FrameScale"])
-			end
-			if Value["UseRichAnimation"] ~= nil then
-				bool_16 = bit32.bor(bool_16, 0b0000000000000100)
-				if Value["UseRichAnimation"] then
-					bool_16 = bit32.bor(bool_16, 0b0000000000001000)
-				end
-			end
-			buffer.writeu8(outgoing_buff, bool_16_pos_1, bool_16)
-			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
-			for player in Set do
-				load_player(player)
-				alloc(used)
-				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
-				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
-				player_map[player] = save()
-			end
-		end,
-	},
-	EquipTower = {
-		SetCallback = function(Callback: (Player: Player, Value: (string)) -> ((boolean))): () -> ()
-			reliable_events[7] = Callback
-			return function()
-				reliable_events[7] = nil
-			end
-		end,
-	},
-	EditTutorial = {
-		SetCallback = function(Callback: (Player: Player, Value: ({
-			["Key"]: (string),
-			["Value"]: ((unknown)),
-		})) -> ()): () -> ()
-			reliable_events[5] = Callback
-			return function()
-				reliable_events[5] = nil
-			end
-		end,
-	},
-	DataUpdated = {
-		Fire = function(Player: Player, Value: ({
-			["Key"]: (string),
-			["Value"]: ((unknown)),
-		}))
-			load_player(Player)
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-			local bool_17 = 0
-			local bool_17_pos_1 = alloc(1)
-			local len_26 = #Value["Key"]
-			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_26)
-			alloc(len_26)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_26)
-			if Value["Value"] ~= nil then
-				bool_17 = bit32.bor(bool_17, 0b0000000000000001)
-				table.insert(outgoing_inst, Value["Value"])
-			end
-			buffer.writeu8(outgoing_buff, bool_17_pos_1, bool_17)
-			player_map[Player] = save()
-		end,
-		FireAll = function(Value: ({
-			["Key"]: (string),
-			["Value"]: ((unknown)),
-		}))
-			load_empty()
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-			local bool_18 = 0
-			local bool_18_pos_1 = alloc(1)
-			local len_27 = #Value["Key"]
-			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_27)
-			alloc(len_27)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_27)
-			if Value["Value"] ~= nil then
-				bool_18 = bit32.bor(bool_18, 0b0000000000000001)
-				table.insert(outgoing_inst, Value["Value"])
-			end
-			buffer.writeu8(outgoing_buff, bool_18_pos_1, bool_18)
-			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
-			for _, player in Players:GetPlayers() do
-				load_player(player)
-				alloc(used)
-				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
-				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
-				player_map[player] = save()
-			end
-		end,
-		FireExcept = function(Except: Player, Value: ({
-			["Key"]: (string),
-			["Value"]: ((unknown)),
-		}))
-			load_empty()
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-			local bool_19 = 0
-			local bool_19_pos_1 = alloc(1)
-			local len_28 = #Value["Key"]
-			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_28)
-			alloc(len_28)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_28)
-			if Value["Value"] ~= nil then
-				bool_19 = bit32.bor(bool_19, 0b0000000000000001)
-				table.insert(outgoing_inst, Value["Value"])
-			end
-			buffer.writeu8(outgoing_buff, bool_19_pos_1, bool_19)
-			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
-			for _, player in Players:GetPlayers() do
-				if player ~= Except then
-					load_player(player)
-					alloc(used)
-					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
-					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
-					player_map[player] = save()
-				end
-			end
-		end,
-		FireList = function(List: { [unknown]: Player }, Value: ({
-			["Key"]: (string),
-			["Value"]: ((unknown)),
-		}))
-			load_empty()
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-			local bool_20 = 0
-			local bool_20_pos_1 = alloc(1)
-			local len_29 = #Value["Key"]
-			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_29)
-			alloc(len_29)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_29)
-			if Value["Value"] ~= nil then
-				bool_20 = bit32.bor(bool_20, 0b0000000000000001)
-				table.insert(outgoing_inst, Value["Value"])
-			end
-			buffer.writeu8(outgoing_buff, bool_20_pos_1, bool_20)
-			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
-			for _, player in List do
-				load_player(player)
-				alloc(used)
-				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
-				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
-				player_map[player] = save()
-			end
-		end,
-		FireSet = function(Set: { [Player]: any }, Value: ({
-			["Key"]: (string),
-			["Value"]: ((unknown)),
-		}))
-			load_empty()
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-			local bool_21 = 0
-			local bool_21_pos_1 = alloc(1)
-			local len_30 = #Value["Key"]
-			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
-			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_30)
-			alloc(len_30)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_30)
-			if Value["Value"] ~= nil then
-				bool_21 = bit32.bor(bool_21, 0b0000000000000001)
-				table.insert(outgoing_inst, Value["Value"])
-			end
-			buffer.writeu8(outgoing_buff, bool_21_pos_1, bool_21)
-			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
-			for player in Set do
-				load_player(player)
-				alloc(used)
-				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
-				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
-				player_map[player] = save()
-			end
-		end,
-	},
-	DataLoaded = {
-		Fire = function(Player: Player, Value: ({ [(string)]: ((unknown)) }))
-			load_player(Player)
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
-			local bool_22 = 0
-			local bool_22_pos_1 = alloc(1)
-			local len_pos_1
-			local len_31 = 0
-			for k_1, v_1 in Value do
-				if len_31 == 0 then
-					len_pos_1 = alloc(2)
-				end
-				local bool_23 = 0
-				local bool_23_pos_1 = alloc(1)
-				len_31 = len_31 + 1
-				local len_32 = #k_1
-				assert(utf8.len(k_1) ~= nil, "value is not valid utf-8")
-				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_32)
-				alloc(len_32)
-				buffer.writestring(outgoing_buff, outgoing_apos, k_1, len_32)
-				if v_1 ~= nil then
-					bool_23 = bit32.bor(bool_23, 0b0000000000000001)
-					table.insert(outgoing_inst, v_1)
-				end
-				buffer.writeu8(outgoing_buff, bool_23_pos_1, bool_23)
-			end
-			if len_pos_1 then
-				buffer.writeu16(outgoing_buff, len_pos_1, len_31 - 1)
-			else
-				bool_22 = bit32.bor(bool_22, 0b0000000000000001)
-			end
-			buffer.writeu8(outgoing_buff, bool_22_pos_1, bool_22)
-			player_map[Player] = save()
-		end,
-		FireAll = function(Value: ({ [(string)]: ((unknown)) }))
-			load_empty()
-			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
 			local bool_24 = 0
 			local bool_24_pos_1 = alloc(1)
-			local len_pos_2
-			local len_33 = 0
-			for k_2, v_2 in Value do
-				if len_33 == 0 then
-					len_pos_2 = alloc(2)
-				end
-				local bool_25 = 0
-				local bool_25_pos_1 = alloc(1)
-				len_33 = len_33 + 1
-				local len_34 = #k_2
-				assert(utf8.len(k_2) ~= nil, "value is not valid utf-8")
-				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_34)
-				alloc(len_34)
-				buffer.writestring(outgoing_buff, outgoing_apos, k_2, len_34)
-				if v_2 ~= nil then
-					bool_25 = bit32.bor(bool_25, 0b0000000000000001)
-					table.insert(outgoing_inst, v_2)
-				end
-				buffer.writeu8(outgoing_buff, bool_25_pos_1, bool_25)
-			end
-			if len_pos_2 then
-				buffer.writeu16(outgoing_buff, len_pos_2, len_33 - 1)
-			else
+			local len_73 = #Value["Text"]
+			assert(utf8.len(Value["Text"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_73)
+			alloc(len_73)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_73)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["Duration"])
+			if Value["TextColor"] ~= nil then
 				bool_24 = bit32.bor(bool_24, 0b0000000000000001)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].R * 255)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].G * 255)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].B * 255)
+			end
+			if Value["FrameScale"] ~= nil then
+				bool_24 = bit32.bor(bool_24, 0b0000000000000010)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, Value["FrameScale"])
+			end
+			if Value["UseRichAnimation"] ~= nil then
+				bool_24 = bit32.bor(bool_24, 0b0000000000000100)
+				if Value["UseRichAnimation"] then
+					bool_24 = bit32.bor(bool_24, 0b0000000000001000)
+				end
 			end
 			buffer.writeu8(outgoing_buff, bool_24_pos_1, bool_24)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
@@ -1287,39 +2353,47 @@ local returns = {
 				player_map[player] = save()
 			end
 		end,
-		FireExcept = function(Except: Player, Value: ({ [(string)]: ((unknown)) }))
+		FireExcept = function(Except: Player, Value: ({
+			["Text"]: (string),
+			["Duration"]: (number),
+			["TextColor"]: ((Color3)?),
+			["FrameScale"]: ((number)?),
+			["UseRichAnimation"]: ((boolean)?),
+		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
-			local bool_26 = 0
-			local bool_26_pos_1 = alloc(1)
-			local len_pos_3
-			local len_35 = 0
-			for k_3, v_3 in Value do
-				if len_35 == 0 then
-					len_pos_3 = alloc(2)
-				end
-				local bool_27 = 0
-				local bool_27_pos_1 = alloc(1)
-				len_35 = len_35 + 1
-				local len_36 = #k_3
-				assert(utf8.len(k_3) ~= nil, "value is not valid utf-8")
-				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_36)
-				alloc(len_36)
-				buffer.writestring(outgoing_buff, outgoing_apos, k_3, len_36)
-				if v_3 ~= nil then
-					bool_27 = bit32.bor(bool_27, 0b0000000000000001)
-					table.insert(outgoing_inst, v_3)
-				end
-				buffer.writeu8(outgoing_buff, bool_27_pos_1, bool_27)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
+			local bool_25 = 0
+			local bool_25_pos_1 = alloc(1)
+			local len_74 = #Value["Text"]
+			assert(utf8.len(Value["Text"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_74)
+			alloc(len_74)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_74)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["Duration"])
+			if Value["TextColor"] ~= nil then
+				bool_25 = bit32.bor(bool_25, 0b0000000000000001)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].R * 255)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].G * 255)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].B * 255)
 			end
-			if len_pos_3 then
-				buffer.writeu16(outgoing_buff, len_pos_3, len_35 - 1)
-			else
-				bool_26 = bit32.bor(bool_26, 0b0000000000000001)
+			if Value["FrameScale"] ~= nil then
+				bool_25 = bit32.bor(bool_25, 0b0000000000000010)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, Value["FrameScale"])
 			end
-			buffer.writeu8(outgoing_buff, bool_26_pos_1, bool_26)
+			if Value["UseRichAnimation"] ~= nil then
+				bool_25 = bit32.bor(bool_25, 0b0000000000000100)
+				if Value["UseRichAnimation"] then
+					bool_25 = bit32.bor(bool_25, 0b0000000000001000)
+				end
+			end
+			buffer.writeu8(outgoing_buff, bool_25_pos_1, bool_25)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				if player ~= Except then
@@ -1331,39 +2405,47 @@ local returns = {
 				end
 			end
 		end,
-		FireList = function(List: { [unknown]: Player }, Value: ({ [(string)]: ((unknown)) }))
+		FireList = function(List: { [unknown]: Player }, Value: ({
+			["Text"]: (string),
+			["Duration"]: (number),
+			["TextColor"]: ((Color3)?),
+			["FrameScale"]: ((number)?),
+			["UseRichAnimation"]: ((boolean)?),
+		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
-			local bool_28 = 0
-			local bool_28_pos_1 = alloc(1)
-			local len_pos_4
-			local len_37 = 0
-			for k_4, v_4 in Value do
-				if len_37 == 0 then
-					len_pos_4 = alloc(2)
-				end
-				local bool_29 = 0
-				local bool_29_pos_1 = alloc(1)
-				len_37 = len_37 + 1
-				local len_38 = #k_4
-				assert(utf8.len(k_4) ~= nil, "value is not valid utf-8")
-				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_38)
-				alloc(len_38)
-				buffer.writestring(outgoing_buff, outgoing_apos, k_4, len_38)
-				if v_4 ~= nil then
-					bool_29 = bit32.bor(bool_29, 0b0000000000000001)
-					table.insert(outgoing_inst, v_4)
-				end
-				buffer.writeu8(outgoing_buff, bool_29_pos_1, bool_29)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
+			local bool_26 = 0
+			local bool_26_pos_1 = alloc(1)
+			local len_75 = #Value["Text"]
+			assert(utf8.len(Value["Text"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_75)
+			alloc(len_75)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_75)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["Duration"])
+			if Value["TextColor"] ~= nil then
+				bool_26 = bit32.bor(bool_26, 0b0000000000000001)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].R * 255)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].G * 255)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].B * 255)
 			end
-			if len_pos_4 then
-				buffer.writeu16(outgoing_buff, len_pos_4, len_37 - 1)
-			else
-				bool_28 = bit32.bor(bool_28, 0b0000000000000001)
+			if Value["FrameScale"] ~= nil then
+				bool_26 = bit32.bor(bool_26, 0b0000000000000010)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, Value["FrameScale"])
 			end
-			buffer.writeu8(outgoing_buff, bool_28_pos_1, bool_28)
+			if Value["UseRichAnimation"] ~= nil then
+				bool_26 = bit32.bor(bool_26, 0b0000000000000100)
+				if Value["UseRichAnimation"] then
+					bool_26 = bit32.bor(bool_26, 0b0000000000001000)
+				end
+			end
+			buffer.writeu8(outgoing_buff, bool_26_pos_1, bool_26)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
 				load_player(player)
@@ -1373,39 +2455,47 @@ local returns = {
 				player_map[player] = save()
 			end
 		end,
-		FireSet = function(Set: { [Player]: any }, Value: ({ [(string)]: ((unknown)) }))
+		FireSet = function(Set: { [Player]: any }, Value: ({
+			["Text"]: (string),
+			["Duration"]: (number),
+			["TextColor"]: ((Color3)?),
+			["FrameScale"]: ((number)?),
+			["UseRichAnimation"]: ((boolean)?),
+		}))
 			load_empty()
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
-			local bool_30 = 0
-			local bool_30_pos_1 = alloc(1)
-			local len_pos_5
-			local len_39 = 0
-			for k_5, v_5 in Value do
-				if len_39 == 0 then
-					len_pos_5 = alloc(2)
-				end
-				local bool_31 = 0
-				local bool_31_pos_1 = alloc(1)
-				len_39 = len_39 + 1
-				local len_40 = #k_5
-				assert(utf8.len(k_5) ~= nil, "value is not valid utf-8")
-				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_40)
-				alloc(len_40)
-				buffer.writestring(outgoing_buff, outgoing_apos, k_5, len_40)
-				if v_5 ~= nil then
-					bool_31 = bit32.bor(bool_31, 0b0000000000000001)
-					table.insert(outgoing_inst, v_5)
-				end
-				buffer.writeu8(outgoing_buff, bool_31_pos_1, bool_31)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
+			local bool_27 = 0
+			local bool_27_pos_1 = alloc(1)
+			local len_76 = #Value["Text"]
+			assert(utf8.len(Value["Text"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_76)
+			alloc(len_76)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_76)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["Duration"])
+			if Value["TextColor"] ~= nil then
+				bool_27 = bit32.bor(bool_27, 0b0000000000000001)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].R * 255)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].G * 255)
+				alloc(1)
+				buffer.writeu8(outgoing_buff, outgoing_apos, Value["TextColor"].B * 255)
 			end
-			if len_pos_5 then
-				buffer.writeu16(outgoing_buff, len_pos_5, len_39 - 1)
-			else
-				bool_30 = bit32.bor(bool_30, 0b0000000000000001)
+			if Value["FrameScale"] ~= nil then
+				bool_27 = bit32.bor(bool_27, 0b0000000000000010)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, Value["FrameScale"])
 			end
-			buffer.writeu8(outgoing_buff, bool_30_pos_1, bool_30)
+			if Value["UseRichAnimation"] ~= nil then
+				bool_27 = bit32.bor(bool_27, 0b0000000000000100)
+				if Value["UseRichAnimation"] then
+					bool_27 = bit32.bor(bool_27, 0b0000000000001000)
+				end
+			end
+			buffer.writeu8(outgoing_buff, bool_27_pos_1, bool_27)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for player in Set do
 				load_player(player)
@@ -1416,22 +2506,1444 @@ local returns = {
 			end
 		end,
 	},
-	ChangeSetting = {
-		SetCallback = function(Callback: (Player: Player, Value: (string)) -> ((boolean))): () -> ()
+	HitWall = {
+		SetCallback = function(Callback: (Player: Player) -> ()): () -> ()
 			reliable_events[4] = Callback
 			return function()
 				reliable_events[4] = nil
 			end
 		end,
 	},
-	ChangeLobbySetting = {
+	GrabBrainrot = {
 		SetCallback = function(Callback: (Player: Player, Value: ({
-			["MaxPlayers"]: (number),
-			["Map"]: (string),
+			["ID"]: (string),
 		})) -> ()): () -> ()
+			reliable_events[5] = Callback
+			return function()
+				reliable_events[5] = nil
+			end
+		end,
+	},
+	FoodSpawned = {
+		Fire = function(Player: Player, Value: ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["Capacity"]: (number),
+			["MaxCapacity"]: (number),
+			["CFrame"]: (CFrame),
+			["Eater"]: ((Instance)?),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			local bool_28 = 0
+			local bool_28_pos_1 = alloc(1)
+			local len_77 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_77)
+			alloc(len_77)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_77)
+			local len_78 = #Value["Name"]
+			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_78)
+			alloc(len_78)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_78)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Capacity"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["MaxCapacity"])
+			local axis_16, angle_16 = Value["CFrame"]:ToAxisAngle()
+			axis_16 = axis_16 * angle_16
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_16.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_16.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_16.Z)
+			if Value["Eater"] ~= nil then
+				bool_28 = bit32.bor(bool_28, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Eater"])
+			end
+			buffer.writeu8(outgoing_buff, bool_28_pos_1, bool_28)
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["Capacity"]: (number),
+			["MaxCapacity"]: (number),
+			["CFrame"]: (CFrame),
+			["Eater"]: ((Instance)?),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			local bool_29 = 0
+			local bool_29_pos_1 = alloc(1)
+			local len_79 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_79)
+			alloc(len_79)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_79)
+			local len_80 = #Value["Name"]
+			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_80)
+			alloc(len_80)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_80)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Capacity"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["MaxCapacity"])
+			local axis_17, angle_17 = Value["CFrame"]:ToAxisAngle()
+			axis_17 = axis_17 * angle_17
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_17.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_17.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_17.Z)
+			if Value["Eater"] ~= nil then
+				bool_29 = bit32.bor(bool_29, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Eater"])
+			end
+			buffer.writeu8(outgoing_buff, bool_29_pos_1, bool_29)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["Capacity"]: (number),
+			["MaxCapacity"]: (number),
+			["CFrame"]: (CFrame),
+			["Eater"]: ((Instance)?),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			local bool_30 = 0
+			local bool_30_pos_1 = alloc(1)
+			local len_81 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_81)
+			alloc(len_81)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_81)
+			local len_82 = #Value["Name"]
+			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_82)
+			alloc(len_82)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_82)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Capacity"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["MaxCapacity"])
+			local axis_18, angle_18 = Value["CFrame"]:ToAxisAngle()
+			axis_18 = axis_18 * angle_18
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_18.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_18.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_18.Z)
+			if Value["Eater"] ~= nil then
+				bool_30 = bit32.bor(bool_30, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Eater"])
+			end
+			buffer.writeu8(outgoing_buff, bool_30_pos_1, bool_30)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["Capacity"]: (number),
+			["MaxCapacity"]: (number),
+			["CFrame"]: (CFrame),
+			["Eater"]: ((Instance)?),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			local bool_31 = 0
+			local bool_31_pos_1 = alloc(1)
+			local len_83 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_83)
+			alloc(len_83)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_83)
+			local len_84 = #Value["Name"]
+			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_84)
+			alloc(len_84)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_84)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Capacity"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["MaxCapacity"])
+			local axis_19, angle_19 = Value["CFrame"]:ToAxisAngle()
+			axis_19 = axis_19 * angle_19
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_19.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_19.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_19.Z)
+			if Value["Eater"] ~= nil then
+				bool_31 = bit32.bor(bool_31, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Eater"])
+			end
+			buffer.writeu8(outgoing_buff, bool_31_pos_1, bool_31)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["Capacity"]: (number),
+			["MaxCapacity"]: (number),
+			["CFrame"]: (CFrame),
+			["Eater"]: ((Instance)?),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
+			local bool_32 = 0
+			local bool_32_pos_1 = alloc(1)
+			local len_85 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_85)
+			alloc(len_85)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_85)
+			local len_86 = #Value["Name"]
+			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_86)
+			alloc(len_86)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_86)
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["Capacity"])
+			alloc(8)
+			buffer.writef64(outgoing_buff, outgoing_apos, Value["MaxCapacity"])
+			local axis_20, angle_20 = Value["CFrame"]:ToAxisAngle()
+			axis_20 = axis_20 * angle_20
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, Value["CFrame"].Position.Z)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_20.X)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_20.Y)
+			alloc(4)
+			buffer.writef32(outgoing_buff, outgoing_apos, axis_20.Z)
+			if Value["Eater"] ~= nil then
+				bool_32 = bit32.bor(bool_32, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Eater"])
+			end
+			buffer.writeu8(outgoing_buff, bool_32_pos_1, bool_32)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	FoodInitialData = {
+		Fire = function(Player: Player, Value: ({ ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["Capacity"]: (number),
+			["MaxCapacity"]: (number),
+			["CFrame"]: (CFrame),
+			["Eater"]: ((Instance)?),
+		}) }))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
+			local len_87 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_87)
+			for i_11 = 1, len_87 do
+				local bool_33 = 0
+				local bool_33_pos_1 = alloc(1)
+				local val_11 = Value[i_11]
+				local len_88 = #val_11["ID"]
+				assert(utf8.len(val_11["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_88)
+				alloc(len_88)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_11["ID"], len_88)
+				local len_89 = #val_11["Name"]
+				assert(utf8.len(val_11["Name"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_89)
+				alloc(len_89)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_11["Name"], len_89)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_11["Capacity"])
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_11["MaxCapacity"])
+				local axis_21, angle_21 = val_11["CFrame"]:ToAxisAngle()
+				axis_21 = axis_21 * angle_21
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_11["CFrame"].Position.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_11["CFrame"].Position.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_11["CFrame"].Position.Z)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_21.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_21.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_21.Z)
+				if val_11["Eater"] ~= nil then
+					bool_33 = bit32.bor(bool_33, 0b0000000000000001)
+					table.insert(outgoing_inst, val_11["Eater"])
+				end
+				buffer.writeu8(outgoing_buff, bool_33_pos_1, bool_33)
+			end
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({ ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["Capacity"]: (number),
+			["MaxCapacity"]: (number),
+			["CFrame"]: (CFrame),
+			["Eater"]: ((Instance)?),
+		}) }))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
+			local len_90 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_90)
+			for i_12 = 1, len_90 do
+				local bool_34 = 0
+				local bool_34_pos_1 = alloc(1)
+				local val_12 = Value[i_12]
+				local len_91 = #val_12["ID"]
+				assert(utf8.len(val_12["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_91)
+				alloc(len_91)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_12["ID"], len_91)
+				local len_92 = #val_12["Name"]
+				assert(utf8.len(val_12["Name"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_92)
+				alloc(len_92)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_12["Name"], len_92)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_12["Capacity"])
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_12["MaxCapacity"])
+				local axis_22, angle_22 = val_12["CFrame"]:ToAxisAngle()
+				axis_22 = axis_22 * angle_22
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_12["CFrame"].Position.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_12["CFrame"].Position.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_12["CFrame"].Position.Z)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_22.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_22.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_22.Z)
+				if val_12["Eater"] ~= nil then
+					bool_34 = bit32.bor(bool_34, 0b0000000000000001)
+					table.insert(outgoing_inst, val_12["Eater"])
+				end
+				buffer.writeu8(outgoing_buff, bool_34_pos_1, bool_34)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({ ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["Capacity"]: (number),
+			["MaxCapacity"]: (number),
+			["CFrame"]: (CFrame),
+			["Eater"]: ((Instance)?),
+		}) }))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
+			local len_93 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_93)
+			for i_13 = 1, len_93 do
+				local bool_35 = 0
+				local bool_35_pos_1 = alloc(1)
+				local val_13 = Value[i_13]
+				local len_94 = #val_13["ID"]
+				assert(utf8.len(val_13["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_94)
+				alloc(len_94)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_13["ID"], len_94)
+				local len_95 = #val_13["Name"]
+				assert(utf8.len(val_13["Name"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_95)
+				alloc(len_95)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_13["Name"], len_95)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_13["Capacity"])
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_13["MaxCapacity"])
+				local axis_23, angle_23 = val_13["CFrame"]:ToAxisAngle()
+				axis_23 = axis_23 * angle_23
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_13["CFrame"].Position.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_13["CFrame"].Position.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_13["CFrame"].Position.Z)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_23.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_23.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_23.Z)
+				if val_13["Eater"] ~= nil then
+					bool_35 = bit32.bor(bool_35, 0b0000000000000001)
+					table.insert(outgoing_inst, val_13["Eater"])
+				end
+				buffer.writeu8(outgoing_buff, bool_35_pos_1, bool_35)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({ ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["Capacity"]: (number),
+			["MaxCapacity"]: (number),
+			["CFrame"]: (CFrame),
+			["Eater"]: ((Instance)?),
+		}) }))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
+			local len_96 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_96)
+			for i_14 = 1, len_96 do
+				local bool_36 = 0
+				local bool_36_pos_1 = alloc(1)
+				local val_14 = Value[i_14]
+				local len_97 = #val_14["ID"]
+				assert(utf8.len(val_14["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_97)
+				alloc(len_97)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_14["ID"], len_97)
+				local len_98 = #val_14["Name"]
+				assert(utf8.len(val_14["Name"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_98)
+				alloc(len_98)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_14["Name"], len_98)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_14["Capacity"])
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_14["MaxCapacity"])
+				local axis_24, angle_24 = val_14["CFrame"]:ToAxisAngle()
+				axis_24 = axis_24 * angle_24
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_14["CFrame"].Position.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_14["CFrame"].Position.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_14["CFrame"].Position.Z)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_24.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_24.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_24.Z)
+				if val_14["Eater"] ~= nil then
+					bool_36 = bit32.bor(bool_36, 0b0000000000000001)
+					table.insert(outgoing_inst, val_14["Eater"])
+				end
+				buffer.writeu8(outgoing_buff, bool_36_pos_1, bool_36)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({ ({
+			["ID"]: (string),
+			["Name"]: (string),
+			["Capacity"]: (number),
+			["MaxCapacity"]: (number),
+			["CFrame"]: (CFrame),
+			["Eater"]: ((Instance)?),
+		}) }))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
+			local len_99 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_99)
+			for i_15 = 1, len_99 do
+				local bool_37 = 0
+				local bool_37_pos_1 = alloc(1)
+				local val_15 = Value[i_15]
+				local len_100 = #val_15["ID"]
+				assert(utf8.len(val_15["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_100)
+				alloc(len_100)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_15["ID"], len_100)
+				local len_101 = #val_15["Name"]
+				assert(utf8.len(val_15["Name"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_101)
+				alloc(len_101)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_15["Name"], len_101)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_15["Capacity"])
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_15["MaxCapacity"])
+				local axis_25, angle_25 = val_15["CFrame"]:ToAxisAngle()
+				axis_25 = axis_25 * angle_25
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_15["CFrame"].Position.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_15["CFrame"].Position.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, val_15["CFrame"].Position.Z)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_25.X)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_25.Y)
+				alloc(4)
+				buffer.writef32(outgoing_buff, outgoing_apos, axis_25.Z)
+				if val_15["Eater"] ~= nil then
+					bool_37 = bit32.bor(bool_37, 0b0000000000000001)
+					table.insert(outgoing_inst, val_15["Eater"])
+				end
+				buffer.writeu8(outgoing_buff, bool_37_pos_1, bool_37)
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	FoodEaterUpdated = {
+		Fire = function(Player: Player, Value: ({
+			["ID"]: (string),
+			["Eater"]: ((Instance)?),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+			local bool_38 = 0
+			local bool_38_pos_1 = alloc(1)
+			local len_102 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_102)
+			alloc(len_102)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_102)
+			if Value["Eater"] ~= nil then
+				bool_38 = bit32.bor(bool_38, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Eater"])
+			end
+			buffer.writeu8(outgoing_buff, bool_38_pos_1, bool_38)
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			["ID"]: (string),
+			["Eater"]: ((Instance)?),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+			local bool_39 = 0
+			local bool_39_pos_1 = alloc(1)
+			local len_103 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_103)
+			alloc(len_103)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_103)
+			if Value["Eater"] ~= nil then
+				bool_39 = bit32.bor(bool_39, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Eater"])
+			end
+			buffer.writeu8(outgoing_buff, bool_39_pos_1, bool_39)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			["ID"]: (string),
+			["Eater"]: ((Instance)?),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+			local bool_40 = 0
+			local bool_40_pos_1 = alloc(1)
+			local len_104 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_104)
+			alloc(len_104)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_104)
+			if Value["Eater"] ~= nil then
+				bool_40 = bit32.bor(bool_40, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Eater"])
+			end
+			buffer.writeu8(outgoing_buff, bool_40_pos_1, bool_40)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({
+			["ID"]: (string),
+			["Eater"]: ((Instance)?),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+			local bool_41 = 0
+			local bool_41_pos_1 = alloc(1)
+			local len_105 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_105)
+			alloc(len_105)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_105)
+			if Value["Eater"] ~= nil then
+				bool_41 = bit32.bor(bool_41, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Eater"])
+			end
+			buffer.writeu8(outgoing_buff, bool_41_pos_1, bool_41)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({
+			["ID"]: (string),
+			["Eater"]: ((Instance)?),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+			local bool_42 = 0
+			local bool_42_pos_1 = alloc(1)
+			local len_106 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_106)
+			alloc(len_106)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_106)
+			if Value["Eater"] ~= nil then
+				bool_42 = bit32.bor(bool_42, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Eater"])
+			end
+			buffer.writeu8(outgoing_buff, bool_42_pos_1, bool_42)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	FoodDespawned = {
+		Fire = function(Player: Player, Value: ({
+			["ID"]: (string),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 8)
+			local len_107 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_107)
+			alloc(len_107)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_107)
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			["ID"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 8)
+			local len_108 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_108)
+			alloc(len_108)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_108)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			["ID"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 8)
+			local len_109 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_109)
+			alloc(len_109)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_109)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({
+			["ID"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 8)
+			local len_110 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_110)
+			alloc(len_110)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_110)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({
+			["ID"]: (string),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 8)
+			local len_111 = #Value["ID"]
+			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_111)
+			alloc(len_111)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_111)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	FoodCapacityUpdated = {
+		Fire = function(Player: Player, Value: ({ ({
+			["ID"]: (string),
+			["Capacity"]: (number),
+		}) }))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
+			local len_112 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_112)
+			for i_16 = 1, len_112 do
+				local val_16 = Value[i_16]
+				local len_113 = #val_16["ID"]
+				assert(utf8.len(val_16["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_113)
+				alloc(len_113)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_16["ID"], len_113)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_16["Capacity"])
+			end
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({ ({
+			["ID"]: (string),
+			["Capacity"]: (number),
+		}) }))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
+			local len_114 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_114)
+			for i_17 = 1, len_114 do
+				local val_17 = Value[i_17]
+				local len_115 = #val_17["ID"]
+				assert(utf8.len(val_17["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_115)
+				alloc(len_115)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_17["ID"], len_115)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_17["Capacity"])
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({ ({
+			["ID"]: (string),
+			["Capacity"]: (number),
+		}) }))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
+			local len_116 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_116)
+			for i_18 = 1, len_116 do
+				local val_18 = Value[i_18]
+				local len_117 = #val_18["ID"]
+				assert(utf8.len(val_18["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_117)
+				alloc(len_117)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_18["ID"], len_117)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_18["Capacity"])
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({ ({
+			["ID"]: (string),
+			["Capacity"]: (number),
+		}) }))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
+			local len_118 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_118)
+			for i_19 = 1, len_118 do
+				local val_19 = Value[i_19]
+				local len_119 = #val_19["ID"]
+				assert(utf8.len(val_19["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_119)
+				alloc(len_119)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_19["ID"], len_119)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_19["Capacity"])
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({ ({
+			["ID"]: (string),
+			["Capacity"]: (number),
+		}) }))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
+			local len_120 = #Value
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_120)
+			for i_20 = 1, len_120 do
+				local val_20 = Value[i_20]
+				local len_121 = #val_20["ID"]
+				assert(utf8.len(val_20["ID"]) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_121)
+				alloc(len_121)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_20["ID"], len_121)
+				alloc(8)
+				buffer.writef64(outgoing_buff, outgoing_apos, val_20["Capacity"])
+			end
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	EditTutorial = {
+		SetCallback = function(Callback: (Player: Player, Value: ({
+			["Key"]: (string),
+			["Value"]: ((unknown)),
+		})) -> ()): () -> ()
+			reliable_events[10] = Callback
+			return function()
+				reliable_events[10] = nil
+			end
+		end,
+	},
+	DropBrainrot = {
+		On = function(Callback: (Player: Player) -> ()): () -> ()
+			table.insert(reliable_events[6], Callback)
+			return function()
+				table.remove(reliable_events[6], table.find(reliable_events[6], Callback))
+			end
+		end,
+	},
+	DataUpdated = {
+		Fire = function(Player: Player, Value: ({
+			["Player"]: (Instance),
+			["Key"]: (string),
+			["Value"]: ((unknown)),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+			local bool_43 = 0
+			local bool_43_pos_1 = alloc(1)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_122 = #Value["Key"]
+			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_122)
+			alloc(len_122)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_122)
+			if Value["Value"] ~= nil then
+				bool_43 = bit32.bor(bool_43, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Value"])
+			end
+			buffer.writeu8(outgoing_buff, bool_43_pos_1, bool_43)
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			["Player"]: (Instance),
+			["Key"]: (string),
+			["Value"]: ((unknown)),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+			local bool_44 = 0
+			local bool_44_pos_1 = alloc(1)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_123 = #Value["Key"]
+			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_123)
+			alloc(len_123)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_123)
+			if Value["Value"] ~= nil then
+				bool_44 = bit32.bor(bool_44, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Value"])
+			end
+			buffer.writeu8(outgoing_buff, bool_44_pos_1, bool_44)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			["Player"]: (Instance),
+			["Key"]: (string),
+			["Value"]: ((unknown)),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+			local bool_45 = 0
+			local bool_45_pos_1 = alloc(1)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_124 = #Value["Key"]
+			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_124)
+			alloc(len_124)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_124)
+			if Value["Value"] ~= nil then
+				bool_45 = bit32.bor(bool_45, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Value"])
+			end
+			buffer.writeu8(outgoing_buff, bool_45_pos_1, bool_45)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({
+			["Player"]: (Instance),
+			["Key"]: (string),
+			["Value"]: ((unknown)),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+			local bool_46 = 0
+			local bool_46_pos_1 = alloc(1)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_125 = #Value["Key"]
+			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_125)
+			alloc(len_125)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_125)
+			if Value["Value"] ~= nil then
+				bool_46 = bit32.bor(bool_46, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Value"])
+			end
+			buffer.writeu8(outgoing_buff, bool_46_pos_1, bool_46)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({
+			["Player"]: (Instance),
+			["Key"]: (string),
+			["Value"]: ((unknown)),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
+			local bool_47 = 0
+			local bool_47_pos_1 = alloc(1)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_126 = #Value["Key"]
+			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_126)
+			alloc(len_126)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_126)
+			if Value["Value"] ~= nil then
+				bool_47 = bit32.bor(bool_47, 0b0000000000000001)
+				table.insert(outgoing_inst, Value["Value"])
+			end
+			buffer.writeu8(outgoing_buff, bool_47_pos_1, bool_47)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	DataLoaded = {
+		Fire = function(Player: Player, Value: ({
+			["Player"]: (Instance),
+			["Data"]: ({ [(string)]: ((unknown)) }),
+		}))
+			load_player(Player)
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			local bool_48 = 0
+			local bool_48_pos_1 = alloc(1)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_pos_1
+			local len_127 = 0
+			for k_1, v_1 in Value["Data"] do
+				if len_127 == 0 then
+					len_pos_1 = alloc(2)
+				end
+				local bool_49 = 0
+				local bool_49_pos_1 = alloc(1)
+				len_127 = len_127 + 1
+				local len_128 = #k_1
+				assert(utf8.len(k_1) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_128)
+				alloc(len_128)
+				buffer.writestring(outgoing_buff, outgoing_apos, k_1, len_128)
+				if v_1 ~= nil then
+					bool_49 = bit32.bor(bool_49, 0b0000000000000001)
+					table.insert(outgoing_inst, v_1)
+				end
+				buffer.writeu8(outgoing_buff, bool_49_pos_1, bool_49)
+			end
+			if len_pos_1 then
+				buffer.writeu16(outgoing_buff, len_pos_1, len_127 - 1)
+			else
+				bool_48 = bit32.bor(bool_48, 0b0000000000000001)
+			end
+			buffer.writeu8(outgoing_buff, bool_48_pos_1, bool_48)
+			player_map[Player] = save()
+		end,
+		FireAll = function(Value: ({
+			["Player"]: (Instance),
+			["Data"]: ({ [(string)]: ((unknown)) }),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			local bool_50 = 0
+			local bool_50_pos_1 = alloc(1)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_pos_2
+			local len_129 = 0
+			for k_2, v_2 in Value["Data"] do
+				if len_129 == 0 then
+					len_pos_2 = alloc(2)
+				end
+				local bool_51 = 0
+				local bool_51_pos_1 = alloc(1)
+				len_129 = len_129 + 1
+				local len_130 = #k_2
+				assert(utf8.len(k_2) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_130)
+				alloc(len_130)
+				buffer.writestring(outgoing_buff, outgoing_apos, k_2, len_130)
+				if v_2 ~= nil then
+					bool_51 = bit32.bor(bool_51, 0b0000000000000001)
+					table.insert(outgoing_inst, v_2)
+				end
+				buffer.writeu8(outgoing_buff, bool_51_pos_1, bool_51)
+			end
+			if len_pos_2 then
+				buffer.writeu16(outgoing_buff, len_pos_2, len_129 - 1)
+			else
+				bool_50 = bit32.bor(bool_50, 0b0000000000000001)
+			end
+			buffer.writeu8(outgoing_buff, bool_50_pos_1, bool_50)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireExcept = function(Except: Player, Value: ({
+			["Player"]: (Instance),
+			["Data"]: ({ [(string)]: ((unknown)) }),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			local bool_52 = 0
+			local bool_52_pos_1 = alloc(1)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_pos_3
+			local len_131 = 0
+			for k_3, v_3 in Value["Data"] do
+				if len_131 == 0 then
+					len_pos_3 = alloc(2)
+				end
+				local bool_53 = 0
+				local bool_53_pos_1 = alloc(1)
+				len_131 = len_131 + 1
+				local len_132 = #k_3
+				assert(utf8.len(k_3) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_132)
+				alloc(len_132)
+				buffer.writestring(outgoing_buff, outgoing_apos, k_3, len_132)
+				if v_3 ~= nil then
+					bool_53 = bit32.bor(bool_53, 0b0000000000000001)
+					table.insert(outgoing_inst, v_3)
+				end
+				buffer.writeu8(outgoing_buff, bool_53_pos_1, bool_53)
+			end
+			if len_pos_3 then
+				buffer.writeu16(outgoing_buff, len_pos_3, len_131 - 1)
+			else
+				bool_52 = bit32.bor(bool_52, 0b0000000000000001)
+			end
+			buffer.writeu8(outgoing_buff, bool_52_pos_1, bool_52)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in Players:GetPlayers() do
+				if player ~= Except then
+					load_player(player)
+					alloc(used)
+					buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+					table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+					player_map[player] = save()
+				end
+			end
+		end,
+		FireList = function(List: { [unknown]: Player }, Value: ({
+			["Player"]: (Instance),
+			["Data"]: ({ [(string)]: ((unknown)) }),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			local bool_54 = 0
+			local bool_54_pos_1 = alloc(1)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_pos_4
+			local len_133 = 0
+			for k_4, v_4 in Value["Data"] do
+				if len_133 == 0 then
+					len_pos_4 = alloc(2)
+				end
+				local bool_55 = 0
+				local bool_55_pos_1 = alloc(1)
+				len_133 = len_133 + 1
+				local len_134 = #k_4
+				assert(utf8.len(k_4) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_134)
+				alloc(len_134)
+				buffer.writestring(outgoing_buff, outgoing_apos, k_4, len_134)
+				if v_4 ~= nil then
+					bool_55 = bit32.bor(bool_55, 0b0000000000000001)
+					table.insert(outgoing_inst, v_4)
+				end
+				buffer.writeu8(outgoing_buff, bool_55_pos_1, bool_55)
+			end
+			if len_pos_4 then
+				buffer.writeu16(outgoing_buff, len_pos_4, len_133 - 1)
+			else
+				bool_54 = bit32.bor(bool_54, 0b0000000000000001)
+			end
+			buffer.writeu8(outgoing_buff, bool_54_pos_1, bool_54)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for _, player in List do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+		FireSet = function(Set: { [Player]: any }, Value: ({
+			["Player"]: (Instance),
+			["Data"]: ({ [(string)]: ((unknown)) }),
+		}))
+			load_empty()
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
+			local bool_56 = 0
+			local bool_56_pos_1 = alloc(1)
+			table.insert(outgoing_inst, Value["Player"])
+			local len_pos_5
+			local len_135 = 0
+			for k_5, v_5 in Value["Data"] do
+				if len_135 == 0 then
+					len_pos_5 = alloc(2)
+				end
+				local bool_57 = 0
+				local bool_57_pos_1 = alloc(1)
+				len_135 = len_135 + 1
+				local len_136 = #k_5
+				assert(utf8.len(k_5) ~= nil, "value is not valid utf-8")
+				alloc(2)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_136)
+				alloc(len_136)
+				buffer.writestring(outgoing_buff, outgoing_apos, k_5, len_136)
+				if v_5 ~= nil then
+					bool_57 = bit32.bor(bool_57, 0b0000000000000001)
+					table.insert(outgoing_inst, v_5)
+				end
+				buffer.writeu8(outgoing_buff, bool_57_pos_1, bool_57)
+			end
+			if len_pos_5 then
+				buffer.writeu16(outgoing_buff, len_pos_5, len_135 - 1)
+			else
+				bool_56 = bit32.bor(bool_56, 0b0000000000000001)
+			end
+			buffer.writeu8(outgoing_buff, bool_56_pos_1, bool_56)
+			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
+			for player in Set do
+				load_player(player)
+				alloc(used)
+				buffer.copy(outgoing_buff, outgoing_apos, buff, 0, used)
+				table.move(inst, 1, #inst, #outgoing_inst + 1, outgoing_inst)
+				player_map[player] = save()
+			end
+		end,
+	},
+	ClaimBrainrotCash = {
+		SetCallback = function(Callback: (Player: Player, Value: ({
+			["ID"]: (string),
+		})) -> (({
+			["Success"]: (boolean),
+			["Amount"]: (number),
+		}))): () -> ()
+			reliable_events[12] = Callback
+			return function()
+				reliable_events[12] = nil
+			end
+		end,
+	},
+	ChangeSetting = {
+		SetCallback = function(Callback: (Player: Player, Value: (string)) -> ((boolean))): () -> ()
+			reliable_events[9] = Callback
+			return function()
+				reliable_events[9] = nil
+			end
+		end,
+	},
+	BuyBaseUpgrade = {
+		SetCallback = function(Callback: (Player: Player) -> ()): () -> ()
 			reliable_events[2] = Callback
 			return function()
 				reliable_events[2] = nil
+			end
+		end,
+	},
+	AssignBrainrot = {
+		SetCallback = function(Callback: (Player: Player, Value: ({
+			["ID"]: (string),
+			["plotNumber"]: ((unknown)),
+		})) -> ()): () -> ()
+			reliable_events[0] = Callback
+			return function()
+				reliable_events[0] = nil
 			end
 		end,
 	},

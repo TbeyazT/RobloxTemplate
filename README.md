@@ -1,3 +1,2 @@
-# tdsGame
-### purna
-aa
+brainrot billboards
+purchasable upgrades (+5 , +10)
