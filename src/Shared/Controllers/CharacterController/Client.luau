@@ -1,18 +1,8 @@
 debug.setmemorycategory(script.Name.." OHA")
 local CollectionService = game:GetService("CollectionService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
-local GroupService = game:GetService("GroupService")
 local Players = game:GetService("Players")
 
-local Assets = ReplicatedStorage:WaitForChild("Assets")
-local Packages = ReplicatedStorage:WaitForChild("Packages")
-local Shared = ReplicatedStorage:WaitForChild("Shared")
-
-local Framework = require(Shared.Framework)
-
-local Signal = require(Packages.Signal)
-local TriggerComponent = require(Shared.Components.TriggerComponent)
+local Signal = require("@Pckgs/Signal")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -22,8 +12,6 @@ local NPC_TAG = "NPC"
 local CharacterController = {}
 
 function CharacterController:Init()
-	self.ProfileService = Framework.Get("ProfileService")
-
 	self.CharacterAdded = Signal.new()
 	self.CharacterRemoving = Signal.new()
 

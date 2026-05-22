@@ -4,12 +4,10 @@ local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
 
 local Assets = ReplicatedStorage:WaitForChild("Assets")
-local Packages = ReplicatedStorage:WaitForChild("Packages")
-local Shared = ReplicatedStorage:WaitForChild("Shared")
 
-local Trove = require(Packages.Trove)
-local Framework = require(Shared.Framework)
-local Net = require(Shared.Net)
+local Trove = require("@Pckgs/Trove")
+local Framework = require("@Shared/Framework")
+local Net = require("@Shared/Net")
 
 local Audios = Assets.Sounds
 
@@ -30,7 +28,7 @@ function AudioController:init()
 end
 
 function AudioController:Start()
-	self.ProfileController = Framework.Get("ProfileService")
+	self.ProfileController = Framework.Get("ProfileController")
 
 	local attempts = 0
 	while not self.ProfileController:IsLoaded() do
