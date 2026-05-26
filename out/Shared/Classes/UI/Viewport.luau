@@ -1,241 +1,197 @@
---!nonstrict
-local UserInputService = game:GetService("UserInputService")
+--[[
+MIT License
 
-local ViewportComponent = {}
-ViewportComponent.__index = ViewportComponent
+Copyright (c) 2021 EgoMoose
 
-export type ViewportComponent = {
-	ViewportFrame: ViewportFrame?,
-	WorldModel: WorldModel,
-	Camera: Camera,
-	Model: Model?,
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-	RotationY: number,
-	IsDragging: boolean,
-	LastMouseX: number,
-	CurrentOptions: {[string]: any}?,
-	CurrentOffset: CFrame,
-	RotationEnabled: boolean,
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-	Connections: {RBXScriptConnection},
-	ResizeConnection: RBXScriptConnection?,
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+--]]
 
-	SetParent: (ViewportComponent, ViewportFrame?) -> (),
-	SetModel: (ViewportComponent, Model, {[string]: any}?) -> Model,
-	SetOffset: (ViewportComponent, CFrame) -> (),
-	UpdateModelPosition: (ViewportComponent) -> (),
-	EnableRotation: (ViewportComponent) -> (),
-	Clear: (ViewportComponent) -> (),
-	Destroy: (ViewportComponent) -> (),
-}
+local BLOCK = {0, 1, 2, 3, 4, 5, 6, 7}
+local WEDGE = {0, 1, 3, 4, 5, 7}
+local CORNER_WEDGE = {0, 1, 4, 5, 6}
 
-local function getHumanoid(instance: Instance): Humanoid?
-	if not instance then return nil end
-	local current = instance
-	while current and current ~= workspace do
-		if current:IsA("Model") then
-			local humanoid = current:FindFirstChildWhichIsA("Humanoid")
-			if humanoid then return humanoid end
-		end
-		current = current.Parent
+-- Class
+
+local ViewportModelClass = {}
+ViewportModelClass.__index = ViewportModelClass
+ViewportModelClass.ClassName = "ViewportModel"
+
+-- Private
+
+local function getIndices(part)
+	if part:IsA("WedgePart") then
+		return WEDGE
+	elseif part:IsA("CornerWedgePart") then
+		return CORNER_WEDGE
 	end
-	return nil
+	return BLOCK
 end
 
-local function isPointInFrame(viewport: ViewportFrame, pos: Vector2): boolean
-	local absPos = viewport.AbsolutePosition
-	local absSize = viewport.AbsoluteSize
-	return pos.X >= absPos.X and pos.X <= absPos.X + absSize.X
-		and pos.Y >= absPos.Y and pos.Y <= absPos.Y + absSize.Y
+local function getCorners(cf, size2, indices)
+	local corners = {}
+	for j, i in pairs(indices) do
+		corners[j] = cf * (size2 * Vector3.new(
+			2 * (math.floor(i / 4) % 2) - 1,
+			2 * (math.floor(i / 2) % 2) - 1,
+			2 * (i % 2) - 1
+		))
+	end
+	return corners
 end
 
-function ViewportComponent.new(viewportFrame: ViewportFrame): ViewportComponent
-	local self = setmetatable({}, ViewportComponent)
+local function getModelPointCloud(model)
+	local points = {}
+	for _, part in pairs(model:GetDescendants()) do
+		if part:IsA("BasePart") then
+			local indices = getIndices(part)
+			local corners = getCorners(part.CFrame, part.Size / 2, indices)
+			for _, wp in pairs(corners) do
+				table.insert(points, wp)
+			end
+		end
+	end
+	return points
+end
 
-	self.ViewportFrame = viewportFrame
+local function viewProjectionEdgeHits(cloud, axis, depth, tanFov2)
+	local max, min = -math.huge, math.huge
+
+	for _, lp in pairs(cloud) do
+		local distance = depth - lp.Z
+		local halfSpan = tanFov2 * distance
+
+		local a = lp[axis] + halfSpan
+		local b = lp[axis] - halfSpan
+
+		max = math.max(max, a, b)
+		min = math.min(min, a, b)
+	end
+
+	return max, min
+end
+
+-- Public Constructors
+
+function ViewportModelClass.new(vpf, camera)
+	local self = setmetatable({}, ViewportModelClass)
 	
-	self.WorldModel = viewportFrame:FindFirstChildOfClass("WorldModel") or Instance.new("WorldModel")
-	self.WorldModel.Parent = viewportFrame
-
-	self.Camera = Instance.new("Camera")
-	self.Camera.FieldOfView = 70
-	self.Camera.Parent = viewportFrame
-	self.Camera.CFrame = CFrame.new()
-	self.ViewportFrame.CurrentCamera = self.Camera
-
 	self.Model = nil
-	self.CurrentOptions = nil
-	self.CurrentOffset = CFrame.identity
-
-	self.RotationY = 0
-	self.IsDragging = false
-	self.LastMouseX = 0
-	self.RotationEnabled = false
-
-	self.Connections = {}
-	self.ResizeConnection = nil
-
+	self.ViewportFrame = vpf
+	self.Camera = camera
+	
+	self._points = {}
+	self._modelCFrame = CFrame.new()
+	self._modelSize = Vector3.new()
+	self._modelRadius = 0
+	
+	self._viewport = {}
+	
+	self:Calibrate()
+	
 	return self
 end
 
-function ViewportComponent:SetParent(newParent: ViewportFrame?)
-	if not newParent then
-		self.ViewportFrame = nil
-		self.WorldModel.Parent = nil
-		self.Camera.Parent = nil
-		return
-	end
+-- Public Methods
 
-	self.ViewportFrame = newParent
-	self.WorldModel.Parent = newParent
-	self.Camera.Parent = newParent
-
-	if newParent:IsA("ViewportFrame") then
-		newParent.CurrentCamera = self.Camera
-		self:UpdateModelPosition()
-	end
+-- Used to set the model that is being focused on
+-- should be used for new models and/or a change in the current model
+-- e.g. parts added/removed from the model or the model cframe changed
+function ViewportModelClass:SetModel(model)
+	self.Model = model
+	
+	local cf, size = model:GetBoundingBox()
+	
+	self._points = getModelPointCloud(model)
+	self._modelCFrame = cf
+	self._modelSize = size	
+	self._modelRadius = size.Magnitude / 2
 end
 
-function ViewportComponent:UpdateModelPosition()
-	if not self.Model or not self.ViewportFrame then return end
-
-	local boundingCFrame, size = self.Model:GetBoundingBox()
+-- Should be called when something about the viewport frame / camera changes
+-- e.g. the frame size or the camera field of view
+function ViewportModelClass:Calibrate()
+	local viewport = {}
+	local size = self.ViewportFrame.AbsoluteSize
 	
-	local fov = self.Camera.FieldOfView
-	local absSize = self.ViewportFrame.AbsoluteSize
-	local aspectRatio = absSize.X / absSize.Y
+	viewport.aspect = size.X / size.Y
 	
-	if absSize.X < 1 or absSize.Y < 1 then aspectRatio = 1 end
-
-	local halfSize = size / 2
-	local fitHeightDistance = halfSize.Y / math.tan(math.rad(fov) / 2)
-	local fitWidthDistance = halfSize.X / (math.tan(math.rad(fov) / 2) * aspectRatio)
-	
-	local targetDistance = math.max(fitHeightDistance, fitWidthDistance) * 1.1 + halfSize.Z
-
-	local targetCenterPos = CFrame.new(0, 0, -targetDistance) * self.CurrentOffset
-
-	local rotation = CFrame.Angles(0, math.rad(self.RotationY), 0)
-
-	local currentPivot = self.Model:GetPivot()
-	local centerToPivot = boundingCFrame:Inverse() * currentPivot
-
-	local finalCFrame = targetCenterPos * rotation * centerToPivot
-	
-	self.Model:PivotTo(finalCFrame)
-end
-
-function ViewportComponent:SetOffset(newOffset: CFrame)
-	self.CurrentOffset = newOffset
-	self:UpdateModelPosition()
-end
-
-function ViewportComponent:SetModel(model: Model, options: {[string]: any}?): Model
-	self:Clear()
-	self.CurrentOptions = options
-
-	if options and options.Offset and typeof(options.Offset) == "CFrame" then
-		self.CurrentOffset = options.Offset
-	else
-		self.CurrentOffset = CFrame.identity
-	end
-
-	local clone = model:Clone()
-
-	if not clone.PrimaryPart then
-		clone.PrimaryPart = clone:FindFirstChild("HumanoidRootPart") or clone:FindFirstChildWhichIsA("BasePart")
-	end
-
-	local humanoid = getHumanoid(clone)
-	clone.Parent = workspace
-	if humanoid then
-		humanoid:BuildRigFromAttachments()
-		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None 
-	end
-
-	clone.Parent = self.WorldModel
-	self.Model = clone
-	
-	self.RotationY = 0 
-	self.RotationY = 180 
-
-	self:UpdateModelPosition()
-
-	if self.ResizeConnection then self.ResizeConnection:Disconnect() end
-	self.ResizeConnection = self.ViewportFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-		self:UpdateModelPosition()
-	end)
-
-	return clone
-end
-
-function ViewportComponent:EnableRotation()
-	if self.RotationEnabled then return end
-	self.RotationEnabled = true
-
-	for _, conn in ipairs(self.Connections) do conn:Disconnect() end
-	table.clear(self.Connections)
-
-	if not self.Model then return end
-
-	table.insert(self.Connections, UserInputService.InputBegan:Connect(function(input, gp)
-		if gp then return end
-		local pos = input.Position or UserInputService:GetMouseLocation()
+	viewport.yFov2 = math.rad(self.Camera.FieldOfView / 2)
+	viewport.tanyFov2 = math.tan(viewport.yFov2)
 		
-		local isValidInput = (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch)
-
-		if isValidInput and isPointInFrame(self.ViewportFrame, pos) then
-			self.IsDragging = true
-			self.LastMouseX = pos.X
-		end
-	end))
-
-	table.insert(self.Connections, UserInputService.InputChanged:Connect(function(input)
-		if not self.IsDragging then return end
-		local isMoveInput = (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch)
-
-		if isMoveInput then
-			local pos = input.Position or UserInputService:GetMouseLocation()
-			local deltaX = pos.X - self.LastMouseX
-			self.LastMouseX = pos.X
-			self.RotationY += deltaX * 0.4
-			self:UpdateModelPosition()
-		end
-	end))
-
-	table.insert(self.Connections, UserInputService.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			self.IsDragging = false
-		end
-	end))
+	viewport.xFov2 = math.atan(viewport.tanyFov2 * viewport.aspect)
+	viewport.tanxFov2 = math.tan(viewport.xFov2)
+	
+	viewport.cFov2 = math.atan(viewport.tanyFov2 * math.min(1, viewport.aspect))
+	viewport.sincFov2 = math.sin(viewport.cFov2)
+	
+	self._viewport = viewport
 end
 
-function ViewportComponent:Clear()
-	if self.ResizeConnection then
-		self.ResizeConnection:Disconnect()
-		self.ResizeConnection = nil
-	end
+-- returns a fixed distance that is guarnteed to encapsulate the full model
+-- this is useful for when you want to rotate freely around an object w/o expensive calculations
+-- focus position can be used to set the origin of where the camera's looking
+-- otherwise the model's center is assumed
+function ViewportModelClass:GetFitDistance(focusPosition)
+	local displacement = focusPosition and  (focusPosition - self._modelCFrame.Position).Magnitude or 0
+	local radius = self._modelRadius + displacement
 
-	if self.WorldModel then
-		self.WorldModel:ClearAllChildren()
-	end
-
-	self.Model = nil
-	self.CurrentOptions = nil
+	return radius / self._viewport.sincFov2
 end
 
-function ViewportComponent:Destroy()
-	for _, conn in ipairs(self.Connections) do
-		conn:Disconnect()
+-- returns the optimal camera cframe that would be needed to best fit 
+-- the model in the viewport frame at the given orientation.
+-- keep in mind this functions best when the model's point-cloud is correct
+-- as such models that rely heavily on meshesh, csg, etc will only return an accurate
+-- result as their point cloud
+function ViewportModelClass:GetMinimumFitCFrame(orientation)
+	if not self.Model then
+		return CFrame.new()
 	end
-	table.clear(self.Connections)
+	
+	local rotation = orientation - orientation.Position
+	local rInverse = rotation:Inverse()
+	
+	local wcloud = self._points
+	local cloud = {rInverse * wcloud[1]}
+	local furthest = cloud[1].Z
 
-	self:Clear()
+	for i = 2, #wcloud do
+		local lp = rInverse * wcloud[i]
+		furthest = math.min(furthest, lp.Z)
+		cloud[i] = lp
+	end
+	
+	local hMax, hMin = viewProjectionEdgeHits(cloud, "X", furthest, self._viewport.tanxFov2)
+	local vMax, vMin = viewProjectionEdgeHits(cloud, "Y", furthest, self._viewport.tanyFov2)
 
-	if self.Camera then self.Camera:Destroy() end
-	if self.WorldModel then self.WorldModel:Destroy() end
+	local distance = math.max(
+		((hMax - hMin) / 2) / self._viewport.tanxFov2,
+		((vMax - vMin) / 2) / self._viewport.tanyFov2
+	)
 
-	setmetatable(self, nil)
+	return orientation * CFrame.new(
+		(hMax + hMin) / 2,
+		(vMax + vMin) / 2,
+		furthest + distance
+	)
 end
 
-return ViewportComponent
+--
+
+return ViewportModelClass

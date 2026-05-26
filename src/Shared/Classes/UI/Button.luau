@@ -1,221 +1,158 @@
+--!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
+local React = require("@Pckgs/React")
+
 local Assets = ReplicatedStorage:WaitForChild("Assets")
 
-local Trove = require("@Pckgs/Trove")
-
-local Button = {}
-
-_G.ActiveFrame = "CH12"
-
-function Button.new(UI,Data)
-	local self = setmetatable({}, {
-		__index = Button
-	})
-
-	self.UI = UI
-	self.Enabled = true
-	self.CanAnimate = true
-	self.SfxEnabled = true
-	self.OriSize = self.UI.Size
-
-	self.UpScale = 1.1
-	self.DownScale = 0.8
-	self.OnHover = nil
-	self.OnUnHover = nil
-	self.OnMouseDown = nil
-	self.OnMouseUp = nil
+type Props = {
+	Enabled: boolean?,
+	SfxEnabled: boolean?,
+	UpScale: number?,
+	DownScale: number?,
+	TweenInfo: TweenInfo?,
+	KeyCode: Enum.KeyCode?,
+	OnClick: (() -> ())?,
 	
-	self.IsDown = false 
+	Size: UDim2?,
+	[string]: any
+}
 
-	self.TI = Data and Data.TweenInfo or TweenInfo.new(0.3, Enum.EasingStyle.Circular, Enum.EasingDirection.Out)
+local function Button(props: Props)
+	local enabled = if props.Enabled ~= nil then props.Enabled else true
+	local sfxEnabled = if props.SfxEnabled ~= nil then props.SfxEnabled else true
+	local upScale = props.UpScale or 1.1
+	local downScale = props.DownScale or 0.8
+	local baseSize = props.Size or UDim2.fromScale(1, 1)
+	
+	local tweenInfo = props.TweenInfo or TweenInfo.new(
+		0.3, 
+		Enum.EasingStyle.Circular, 
+		Enum.EasingDirection.Out
+	)
 
-	self.HoverTween = TweenService:Create(UI, self.TI, {
-		Size = UDim2.fromScale(self.UI.Size.X.Scale * self.UpScale, self.UI.Size.Y.Scale * self.UpScale)
-	})
+	local buttonRef = React.useRef(nil :: GuiButton?)
+	local currentTweenRef = React.useRef(nil :: Tween?)
+	local isDownRef = React.useRef(false)
 
-	self.HoverLeaveTween = TweenService:Create(UI, self.TI, {
-		Size = UDim2.fromScale(self.OriSize.X.Scale, self.OriSize.Y.Scale)
-	})
-
-	self.MouseDownTween = TweenService:Create(UI, self.TI, {
-		Size = UDim2.fromScale(self.UI.Size.X.Scale * self.DownScale, self.UI.Size.Y.Scale * self.DownScale)
-	})
-
-	self.MouseUpTween = TweenService:Create(UI, self.TI, {
-		Size = UDim2.fromScale(self.OriSize.X.Scale, self.OriSize.Y.Scale)
-	})
-
-	self.Connections = Trove.new()
-
-	self.UI.Destroying:Connect(function()
-		if self.destroy then
-			self:destroy()
-		end
-	end)
-
-	return self
-end
-
-function Button:Enable()
-	self.Enabled = true
-end
-
-function Button:Disable()
-	self.Enabled = false
-	self.IsDown = false
-end
-
-function Button:UpdateTweens()
-	self.HoverTween = TweenService:Create(self.UI, self.TI, {
-		Size = UDim2.fromScale(self.UI.Size.X.Scale * self.UpScale, self.UI.Size.Y.Scale * self.UpScale)
-	})
-	self.HoverLeaveTween = TweenService:Create(self.UI, self.TI, {
-		Size = UDim2.fromScale(self.OriSize.X.Scale, self.OriSize.Y.Scale)
-	})
-	self.MouseDownTween = TweenService:Create(self.UI, self.TI, {
-		Size = UDim2.fromScale(self.UI.Size.X.Scale * self.DownScale, self.UI.Size.Y.Scale * self.DownScale)
-	})
-	self.MouseUpTween = TweenService:Create(self.UI, self.TI, {
-		Size = UDim2.fromScale(self.OriSize.X.Scale, self.OriSize.Y.Scale)
-	})
-end
-
-function Button:Hover()
-	if self.CanAnimate then
-		self.HoverTween:Play()
+	local function getScaledSize(size: UDim2, multiplier: number): UDim2
+		return UDim2.new(
+			size.X.Scale * multiplier,
+			size.X.Offset * multiplier,
+			size.Y.Scale * multiplier,
+			size.Y.Offset * multiplier
+		)
 	end
-	local hoverSound = Assets.Sounds.UI:FindFirstChild("Hover")
-	if hoverSound then
-		if self.SfxEnabled then
-			hoverSound:Play()
+
+	local function playTween(targetSize: UDim2)
+		local button = buttonRef.current
+		if not button then return end
+
+		if currentTweenRef.current then
+			currentTweenRef.current:Cancel()
+			currentTweenRef.current:Destroy()
+		end
+
+		local tween = TweenService:Create(button, tweenInfo, { Size = targetSize })
+		currentTweenRef.current = tween
+		tween:Play()
+	end
+
+	local function playSound(soundName: string)
+		if not sfxEnabled then return end
+		local sound = Assets.Sounds.UI:FindFirstChild(soundName)
+		if sound then
+			sound:Play()
 		end
 	end
-	if self.OnHover then
-		self.OnHover(self.UI)
-	end
-end
 
-function Button:UnHover()
-	if self.CanAnimate then
-		self.HoverLeaveTween:Play()
+	local function onMouseEnter()
+		if not enabled then return end
+		playTween(getScaledSize(baseSize, upScale))
+		playSound("Hover")
 	end
-	if self.OnUnHover then
-		self.OnUnHover(self.UI)
+
+	local function onMouseLeave()
+		if not enabled then return end
+		isDownRef.current = false
+		playTween(baseSize)
 	end
-end
 
-function Button:MouseDown()
-	if self.CanAnimate then
-		self.MouseDownTween:Play()
+	local function onMouseButton1Down()
+		if not enabled then return end
+		isDownRef.current = true
+		playTween(getScaledSize(baseSize, downScale))
 	end
-	if self.OnMouseDown then
-		self.OnMouseDown(self.UI)
-	end
-end
 
-function Button:MouseUp()
-	if self.CanAnimate then
-		self.MouseUpTween:Play()
-	end
-	local clickSound = Assets.Sounds.UI:FindFirstChild("Click")
-	if clickSound and self.SfxEnabled then
-		clickSound:Play()
-	end
-	if self.OnMouseUp then
-		self.OnMouseUp(self.UI)
-	end
-end
-
-function Button:Init(func,KeyCode:Enum.KeyCode)
-	self.Connections:Clean()
-	
-	self.IsDown = false
-
-	self.Connections:Connect(self.UI.MouseEnter, function()
-        if not self.Enabled then return end
-        self:Hover()
-    end)
-
-	self.Connections:Connect(self.UI.MouseLeave, function()
-        if not self.Enabled then return end
-		self.IsDown = false 
-		self:UnHover()
-    end)
-
-	if self.UI:IsA("GuiButton") then
-		self.Connections:Connect(self.UI.MouseButton1Down, function()
-            if not self.Enabled then return end
-			self.IsDown = true 
-			self:MouseDown()
-        end)
-
-		self.Connections:Connect(self.UI.MouseButton1Up, function()
-            if not self.Enabled then return end
-			
-			if self.IsDown then
-				self:MouseUp()
-				if func and type(func) == "function" then
-					func()
-				end
+	local function onMouseButton1Up()
+		if not enabled then return end
+		if isDownRef.current then
+			playTween(baseSize)
+			playSound("Click")
+			if props.OnClick then
+				props.OnClick()
 			end
-			
-			self.IsDown = false
-        end)
+		end
+		isDownRef.current = false
 	end
 
-	if KeyCode then
-		self.Connections:Connect(UserInputService.InputBegan, function(input, gpe)
-			if gpe or not self.Enabled then return end
-			if input.KeyCode == KeyCode then
-				self:MouseDown()
+	React.useEffect(function()
+		if not props.KeyCode or not enabled then return end
+
+		local inputBeganConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+			if gameProcessed then return end
+			if input.KeyCode == props.KeyCode then
+				isDownRef.current = true
+				playTween(getScaledSize(baseSize, downScale))
 			end
 		end)
 
-		self.Connections:Connect(UserInputService.InputEnded, function(input, gpe)
-			if gpe or not self.Enabled then return end
-			if input.KeyCode == KeyCode then
-				self:MouseUp()
-				if func and type(func) == "function" then
-					func()
+		local inputEndedConn = UserInputService.InputEnded:Connect(function(input, gameProcessed)
+			if gameProcessed then return end
+			if input.KeyCode == props.KeyCode then
+				playTween(baseSize)
+				playSound("Click")
+				if props.OnClick then
+					props.OnClick()
 				end
+				isDownRef.current = false
 			end
 		end)
-	end
-end
 
-function Button:Destroy()
-	self.Connections:Destroy()
+		return function()
+			inputBeganConn:Disconnect()
+			inputEndedConn:Disconnect()
+		end
+	end, {props.KeyCode, enabled, baseSize, downScale, props.OnClick} :: {any})
 
-	if self.HoverTween then
-		self.HoverTween:Cancel()
-		self.HoverTween:Destroy()
-		self.HoverTween = nil
-	end
+	React.useEffect(function()
+		return function()
+			if currentTweenRef.current then
+				currentTweenRef.current:Cancel()
+				currentTweenRef.current:Destroy()
+				currentTweenRef.current = nil
+			end
+		end
+	end, {})
 
-	if self.HoverLeaveTween then
-		self.HoverLeaveTween:Cancel()
-		self.HoverLeaveTween:Destroy()
-		self.HoverLeaveTween = nil
-	end
+	local elementProps = table.clone(props)
+	elementProps.Enabled = nil
+	elementProps.SfxEnabled = nil
+	elementProps.UpScale = nil
+	elementProps.DownScale = nil
+	elementProps.TweenInfo = nil
+	elementProps.KeyCode = nil
+	elementProps.OnClick = nil
 
-	if self.MouseDownTween then
-		self.MouseDownTween:Cancel()
-		self.MouseDownTween:Destroy()
-		self.MouseDownTween = nil
-	end
+	elementProps.ref = buttonRef
+	elementProps[React.Event.MouseEnter] = onMouseEnter
+	elementProps[React.Event.MouseLeave] = onMouseLeave
+	elementProps[React.Event.MouseButton1Down] = onMouseButton1Down
+	elementProps[React.Event.MouseButton1Up] = onMouseButton1Up
 
-	if self.MouseUpTween then
-		self.MouseUpTween:Cancel()
-		self.MouseUpTween:Destroy()
-		self.MouseUpTween = nil
-	end
-
-	self.UI.Size = self.OriSize
-
-	setmetatable(self,nil)
+	return React.createElement("TextButton", elementProps)
 end
 
 return Button

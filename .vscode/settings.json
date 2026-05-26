@@ -3,5 +3,6 @@
     "liveServer.settings.port": 5501,
     "luau-lsp.types.robloxSecurityLevel": "LocalUserSecurity",
     "luau-lsp.platform.type": "roblox",
-    "luau-lsp.plugin.enabled": true
+    "luau-lsp.plugin.enabled": true,
+    "luau-lsp.completion.autocompleteEnd": true
 }

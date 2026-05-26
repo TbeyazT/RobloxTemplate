@@ -1,3 +1,9 @@
+--[[
+-------------------------------------------------------------------
+Created by: @TbeyazT
+---------------------------------------------------------------------
+]]
+
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 

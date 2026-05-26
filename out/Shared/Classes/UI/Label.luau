@@ -1,7 +1,6 @@
 --[[
 	// FileName: LabelComponent.lua
 	// Description: Converts TextLabel into Word Frames containing Letter Labels.
-	// Fixes: Handles FontFace support to prevent Enum.Font.Unknown errors.
 	@TbeyazT 2026
 --]]
 
@@ -141,11 +140,9 @@ function LabelComponent:SetText(text: string)
 	local frameSize = self.Frame.AbsoluteSize
 	if frameSize.X <= 1 or frameSize.Y <= 1 then return end
 
-	-- 1. CALCULATE EXACT SIZE
 	self.TextSize = calculateBestFontSize(text, self.Font, frameSize, self._Template)
 	self.LineHeight = self.TextSize * 1.0
 	
-	-- 2. Tokenize (Word by Word)
 	local words = {}
 	for word in text:gmatch("%S+") do
 		table.insert(words, word)

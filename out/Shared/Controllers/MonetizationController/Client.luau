@@ -19,9 +19,8 @@ local MonetizationController = {
 }
 
 function MonetizationController:Init()
-    self.ProfileService = Framework.Get("ProfileService")
-    self.AudioService = Framework.Get("AudioService")
-    self.NotificationService = Framework.Get("NotificationService")
+    self.ProfileService = Framework.Get("ProfileController")
+    self.AudioService = Framework.Get("AudioController")
 
     self.CleanTrove:Connect(MarketplaceService.PromptGamePassPurchaseFinished, function(player, passId, wasPurchased)
         if player == LocalPlayer and wasPurchased then

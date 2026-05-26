@@ -1,5 +1,7 @@
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
+local React = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packages'):FindFirstChild('React'))
 local ReactRoblox = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packages'):FindFirstChild('ReactRoblox'))
 
 export type UIModule = {
@@ -14,7 +16,7 @@ export type UIModule = {
 }
 
 local _screens: { [string]: UIModule } = {}
-local _roots: { [string]: any } = {}
+local _mainRoot: any = nil 
 
 local UI = {
 	_hasStarted = false,
@@ -22,6 +24,22 @@ local UI = {
 }
 
 local PREFIX = "[UI-System]"
+
+local function App(props: { screens: { UIModule } })
+	local children = {}
+
+	for _, uiModule in ipairs(props.screens) do
+		local renderFunc = uiModule.Render
+		if type(renderFunc) == "function" then
+			local element = renderFunc(uiModule)
+			if element then
+				table.insert(children, element)
+			end
+		end
+	end
+
+	return React.createElement("Folder", { Name = HttpService:GenerateGUID() }, table.unpack(children))
+end
 
 function UI:Init()
 	if self._hasStarted then return end
@@ -86,22 +104,14 @@ function UI:Init()
 				warn(string.format("%s ❌ Mount Error in %s: %s", PREFIX, uiModule.Name, tostring(err)))
 			end)
 		end
-
-		local renderFunc = uiModule.Render
-		if type(renderFunc) == "function" then
-			xpcall(function()
-				local root = ReactRoblox.createRoot(mainGui)
-				_roots[uiModule.Name] = root
-				
-				local element = renderFunc(uiModule)
-				if element then
-					root:render(element)
-				end
-			end, function(err: any)
-				warn(string.format("%s ❌ React Render Error in %s: %s", PREFIX, uiModule.Name, tostring(err)))
-			end)
-		end
 	end
+
+	xpcall(function()
+		_mainRoot = ReactRoblox.createRoot(mainGui)
+		_mainRoot:render(React.createElement(App, { screens = screensToLoad }))
+	end, function(err: any)
+		warn(string.format("%s ❌ React Initialization Error: %s", PREFIX, tostring(err)))
+	end)
 
 	for _, uiModule in ipairs(screensToLoad) do
 		local startFunc = uiModule.Start
@@ -128,17 +138,16 @@ end
 function UI:Destroy()
 	if not self._hasStarted then return end
 	
-	for _, uiModule: UIModule in ipairs(self._loadedModules or {}) do
-		local root = _roots[uiModule.Name]
-		if root then
-			xpcall(function()
-				root:unmount()
-			end, function(err)
-				warn(string.format("%s ❌ React Unmount Error in %s: %s", PREFIX, uiModule.Name, tostring(err)))
-			end)
-			_roots[uiModule.Name] = nil
-		end
+	if _mainRoot then
+		xpcall(function()
+			_mainRoot:unmount()
+		end, function(err)
+			warn(string.format("%s ❌ React Unmount Error: %s", PREFIX, tostring(err)))
+		end)
+		_mainRoot = nil
+	end
 
+	for _, uiModule: UIModule in ipairs(self._loadedModules or {}) do
 		local destroyFunc = uiModule.Destroy
 		if type(destroyFunc) == "function" then
 			xpcall(function()
@@ -153,7 +162,6 @@ function UI:Destroy()
 	table.clear(self._loadedModules)
 	self._loadedModules = {}
 	table.clear(_screens)
-	table.clear(_roots)
 end
 
 return UI

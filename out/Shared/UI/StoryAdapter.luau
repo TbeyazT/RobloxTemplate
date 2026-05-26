@@ -8,13 +8,13 @@ type ReactNode = any
 
 type UIModuleRef = { 
     Init: ((self: any) -> ())?,
-    Mount: ((self: any, parent: Instance) -> ())?,
     Render: ((self: any) -> ReactNode)?,
     Destroy: ((self: any) -> ())?,
     [string]: any
 }
 
 function StoryAdapter.wrap(module: UIModuleRef)
+    print("wrapping")
     return function(target: Instance)
         if typeof(target) == "Instance" then
             local root: any = nil
@@ -22,11 +22,6 @@ function StoryAdapter.wrap(module: UIModuleRef)
             local initFunc = module.Init
             if type(initFunc) == "function" then
                 initFunc(module)
-            end
-            
-            local mountFunc = module.Mount
-            if type(mountFunc) == "function" then
-                mountFunc(module, target)
             end
 
             local renderFunc = module.Render

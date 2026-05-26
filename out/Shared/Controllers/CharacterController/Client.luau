@@ -25,7 +25,7 @@ function CharacterController:Init()
 end
 
 function CharacterController:GetPlayerData(player: Player)
-	return self.PlayerData[player]
+	return self.PlayerData[player or LocalPlayer]
 end
 
 function CharacterController:GetNPCData(model: Model)
