@@ -14,7 +14,6 @@ type UIModuleRef = {
 }
 
 function StoryAdapter.wrap(module: UIModuleRef)
-    print("wrapping")
     return function(target: Instance)
         if typeof(target) == "Instance" then
             local root: any = nil

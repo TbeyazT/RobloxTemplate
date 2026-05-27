@@ -138,6 +138,7 @@ local function Button(props: Props)
 	end, {})
 
 	local elementProps = table.clone(props)
+	elementProps.Text = nil
 	elementProps.Enabled = nil
 	elementProps.SfxEnabled = nil
 	elementProps.UpScale = nil
@@ -152,7 +153,7 @@ local function Button(props: Props)
 	elementProps[React.Event.MouseButton1Down] = onMouseButton1Down
 	elementProps[React.Event.MouseButton1Up] = onMouseButton1Up
 
-	return React.createElement("TextButton", elementProps)
+	return React.createElement("ImageButton", elementProps)
 end
 
 return Button

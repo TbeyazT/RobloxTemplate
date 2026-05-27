@@ -24,7 +24,7 @@ function CharacterController:Init()
 	self.Animator = nil
 end
 
-function CharacterController:GetPlayerData(player: Player)
+function CharacterController:GetPlayerData(player: Player|nil)
 	return self.PlayerData[player or LocalPlayer]
 end
 

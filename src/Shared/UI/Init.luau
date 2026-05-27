@@ -92,7 +92,7 @@ function UI:Init()
 	local playerGui = localPlayer:WaitForChild("PlayerGui", 10)
 	assert(playerGui, "PlayerGui was not found")
 	
-	local mainGui = playerGui:WaitForChild("MainGui", 10)
+	local mainGui = playerGui:WaitForChild("MainGui", 20)
 	assert(mainGui, "MainGui was not found")
 
 	for _, uiModule in ipairs(screensToLoad) do

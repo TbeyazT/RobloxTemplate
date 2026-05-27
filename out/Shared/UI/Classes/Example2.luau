@@ -73,7 +73,7 @@ function CounterScreen:Init()
 end
 
 function CounterScreen:Render()
-    return React.createElement(CounterApp)
+    return-- React.createElement(CounterApp)
 end
 
 function CounterScreen:Start()

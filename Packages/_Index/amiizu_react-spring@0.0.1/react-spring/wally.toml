@@ -1,0 +1,14 @@
+[package]
+name = "amiizu/react-spring"
+description = "A modern spring-physics based animation library for Roact inspired by react-spring"
+version = "0.0.1"
+license = "MIT"
+authors = ["Paul Henschel", "chriscerie"]
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[dependencies]
+Promise = "evaera/promise@^4.0"
+TestEZ = "roblox/testez@^0.4"
+React ="jsdotlua/react@^17"
+ReactRoblox = "jsdotlua/react-roblox@^17"

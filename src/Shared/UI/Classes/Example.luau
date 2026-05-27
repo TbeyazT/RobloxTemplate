@@ -1,13 +1,57 @@
 --!strict
 local React = require("@Pckgs/React")
-
-local Button = require("@Classes/UI/Button")
+local ReactSpring = require("@Pckgs/ReactSpring")
 
 local CounterScreen = {}
 CounterScreen.Order = 10 
 
 local function CounterApp()
     local count, setCount = React.useState(0)
+    local hovered, setHovered = React.useState(false)
+    local pressed, setPressed = React.useState(false)
+
+    -- 1. Main Frame Entrance Animation (Slides up and fades in on mount)
+    local frameStyles = ReactSpring.useSpring({
+        from = {
+            Position = UDim2.fromScale(0.5, 0.55),
+            BackgroundTransparency = 1,
+        },
+        to = {
+            Position = UDim2.fromScale(0.5, 0.5),
+            BackgroundTransparency = 0,
+        },
+        config = {
+            damping = 0.05, -- Standard comfortable damping
+            frequency = 0.2, -- Smooth 300ms transition on mount
+        }
+    })
+
+    -- 2. Responsive UI Spring Setup
+    local buttonStyles, buttonApi = ReactSpring.useSpring(function()
+        return {
+            size = UDim2.fromScale(0.4, 0.2),
+            config = {
+                damping = 0.09, -- Creates a satisfying, responsive bounce
+                frequency = 0.15, -- Super snappy 150ms settling time
+            }
+        }
+    end)
+
+    -- Handle interactive scale calculations seamlessly
+    React.useEffect(function()
+        local targetSize
+        if pressed then
+            targetSize = UDim2.fromScale(0.35, 0.175) -- Smooth compression scale
+        elseif hovered then
+            targetSize = UDim2.fromScale(0.44, 0.22)  -- Hover magnification scale
+        else
+            targetSize = UDim2.fromScale(0.4, 0.2)    -- Default idle scale
+        end
+
+        buttonApi.start({
+            size = targetSize,
+        })
+    end, { hovered, pressed })
 
     React.useEffect(function()
         print("[CounterScreen] React component mounted!")
@@ -18,7 +62,8 @@ local function CounterApp()
 
     return React.createElement("Frame", {
         Size = UDim2.fromScale(0.26, 0.4),
-        Position = UDim2.fromScale(0.5, 0.5),
+        Position = frameStyles.Position,
+        BackgroundTransparency = frameStyles.BackgroundTransparency,
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = Color3.fromRGB(35, 35, 40),
         BorderSizePixel = 0,
@@ -37,15 +82,26 @@ local function CounterApp()
             Font = Enum.Font.SourceSansBold,
         }),
 
-        Button = React.createElement(Button, {
-            Size = UDim2.fromScale(0.4, 0.2),
+        Button = React.createElement("ImageButton", {
+            Size = buttonStyles.size,
             Position = UDim2.fromScale(0.5, 0.6),
             AnchorPoint = Vector2.new(0.5, 0.5),
-            BackgroundColor3 = Color3.fromRGB(0, 162, 255),
-            Text = "",
             
             [React.Event.Activated] = function()
                 setCount(count + 1)
+            end,
+            [React.Event.MouseEnter] = function()
+                setHovered(true)
+            end,
+            [React.Event.MouseLeave] = function()
+                setHovered(false)
+                setPressed(false) -- Reset click if the user drags mouse off the button
+            end,
+            [React.Event.MouseButton1Down] = function()
+                setPressed(true)
+            end,
+            [React.Event.MouseButton1Up] = function()
+                setPressed(false)
             end,
         }, {
             Label = React.createElement("TextLabel", {
@@ -58,11 +114,6 @@ local function CounterApp()
                 TextSize = 16,
                 TextScaled = true,
                 Font = Enum.Font.SourceSansSemibold,
-            }),
-        }
-        ,{
-            ButtonCorner = React.createElement("UICorner", {
-                CornerRadius = UDim.new(0, 4),
             }),
         })
     })
