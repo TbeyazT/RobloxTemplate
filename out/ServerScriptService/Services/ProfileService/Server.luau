@@ -10,9 +10,9 @@ local ServerStorage = game:GetService("ServerStorage")
 local Promise = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packages'):FindFirstChild('Promise'))
 local Signal = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packages'):FindFirstChild('Signal'))
 local TableUtil = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packages'):FindFirstChild('TableUtil'))
-local ProfileStore = require(game:GetService('ServerScriptService'):FindFirstChild('ProfileStore'))
+local ProfileStore = require(game:GetService('ServerScriptService'):FindFirstChild('Constants'):FindFirstChild('ProfileStore'))
 
-local Net = require(game:GetService('ServerScriptService'):FindFirstChild('Net'))
+local Net = require(game:GetService('ServerScriptService'):FindFirstChild('Constants'):FindFirstChild('Net'))
 -------------------------- Constants --------------------------
 
 local STORE_NAME = "FullStarStudios"

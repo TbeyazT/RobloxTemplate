@@ -1,4 +1,4 @@
-opt server_output = "ServerScriptService/Net.luau"
+opt server_output = "ServerScriptService/Constants/Net.luau"
 opt client_output = "Shared/Net.luau"
 
 event DataLoaded = {
@@ -316,4 +316,20 @@ event UpgradePlayerStat = {
         StatName: string.utf8,
         Amount: u32
     }
+}
+
+--inventory
+
+event EquipTool = {
+    from:Client,
+    type:Reliable,
+    call:SingleAsync,
+    data: string.utf8 -- maybe id soon
+}
+
+event UnequipTool = {
+    from:Client,
+    type:Reliable,
+    call:SingleAsync,
+    data: string.utf8 -- maybe id soon
 }

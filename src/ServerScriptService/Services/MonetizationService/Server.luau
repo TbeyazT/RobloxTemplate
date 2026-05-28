@@ -2,7 +2,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 
 local Framework = require("@Shared/Framework")
-local Net = require("@SSS/Net")
+local Net = require("@SSS/Constants/Net")
 
 local Config = require("@Modules/Core/MonetizationConfig")
 

@@ -1,6 +1,6 @@
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local Net = require(ServerScriptService.Net)
+local Net = require(game:GetService('ServerScriptService'):FindFirstChild('Constants'):FindFirstChild('Net'))
 
 local NotificationService = {}
 

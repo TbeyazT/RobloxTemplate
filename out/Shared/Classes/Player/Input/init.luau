@@ -1,13 +1,11 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-
-local Packages = ReplicatedStorage:WaitForChild("Packages")
-local Signal = require(Packages.Signal)
+local Players = game:GetService("Players")
 
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
+
+export type ActionCallback = (actionName: string, state: Enum.UserInputState, input: InputObject, gameProcessed: boolean) -> ()
 
 local InputClass = {}
 InputClass.__index = InputClass
@@ -15,26 +13,28 @@ InputClass.__index = InputClass
 function InputClass.new()
 	local self = setmetatable({}, InputClass)
 
-	self.OnClick = Signal.new()
-	self.InputBegan = Signal.new()
-	self.InputEnded = Signal.new()
-	self.OnThumbstick = Signal.new()
-	self.OnTouchMoved = Signal.new()
-	self.OnHover = Signal.new()
-
-	self.LastMobileClick = tick()
-	self.MobileClickDebounce = 0.1
 	self.HoveredInstance = nil
-
-	self._connections = {}
+	
+	self._bindings = {}     
+	self._connections = {}  
+	self._hoverCallback = nil
 
 	self:InitHoverDetection()
-	self:InitKeybinds()
+	self:InitInputListeners()
 
 	return self
 end
 
-function InputClass:GetMousePosition2D()
+local function matchesInput(input: InputObject, allowedInputs: {any}): boolean
+	for _, allowed in ipairs(allowedInputs) do
+		if allowed == input.KeyCode or allowed == input.UserInputType then
+			return true
+		end
+	end
+	return false
+end
+
+function InputClass:GetMousePosition2D(): Vector2
 	local mousePos = UserInputService:GetMouseLocation()
 	local viewportSize = workspace.CurrentCamera.ViewportSize
 	local x = mousePos.X / viewportSize.X
@@ -42,7 +42,7 @@ function InputClass:GetMousePosition2D()
 	return Vector2.new(x, y)
 end
 
-function InputClass:GetMouseWorldRay(BlackList)
+function InputClass:GetMouseWorldRay(BlackList: {Instance} | Instance | nil): RaycastResult?
 	local screenMousePos = UserInputService:GetMouseLocation()
 	local unitRay = Camera:ViewportPointToRay(screenMousePos.X, screenMousePos.Y)
 
@@ -69,16 +69,31 @@ function InputClass:GetMouseWorldRay(BlackList)
 	return workspace:Raycast(unitRay.Origin, unitRay.Direction * 1000, raycastParams)
 end
 
-function InputClass:IsMobile()
+function InputClass:IsMobile(): boolean
 	return UserInputService.TouchEnabled 
 end
 
-function InputClass:IsPC()
+function InputClass:IsPC(): boolean
 	return not UserInputService.TouchEnabled
 end
 
-function InputClass:HasKeyboard()
+function InputClass:HasKeyboard(): boolean
 	return UserInputService.KeyboardEnabled
+end
+
+function InputClass:BindAction(actionName: string, callback: ActionCallback, inputs: {Enum.KeyCode | Enum.UserInputType})
+	self._bindings[actionName] = {
+		Callback = callback,
+		Inputs = inputs
+	}
+end
+
+function InputClass:UnbindAction(actionName: string)
+	self._bindings[actionName] = nil
+end
+
+function InputClass:BindHover(callback: (hoveredInstance: Instance?) -> ())
+	self._hoverCallback = callback
 end
 
 function InputClass:InitHoverDetection()
@@ -88,57 +103,39 @@ function InputClass:InitHoverDetection()
 
 		if hit ~= self.HoveredInstance then
 			self.HoveredInstance = hit
-			self.OnHover:Fire(hit)
+			if self._hoverCallback then
+				self._hoverCallback(hit)
+			end
 		end
 	end)
 	
 	table.insert(self._connections, conn)
 end
 
-function InputClass:InitKeybinds()
-	local conn1 = UserInputService.InputBegan:Connect(function(input, gpe)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			self.OnClick:Fire("Mouse", input, gpe)
-		end
-
-		if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType == Enum.UserInputType.Gamepad1 then
-			self.InputBegan:Fire(input.KeyCode, gpe)
-		end
-	end)
-
-	local conn2 = UserInputService.InputEnded:Connect(function(input, gpe)
-		if gpe then return end
-
-		if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType == Enum.UserInputType.Gamepad1 then
-			self.InputEnded:Fire(input.KeyCode, gpe)
-		end
-	end)
-
-	local conn3 = UserInputService.TouchTap:Connect(function(touchPositions, gpe)
-		if tick() - self.LastMobileClick > self.MobileClickDebounce then
-			self.LastMobileClick = tick()
-			self.OnClick:Fire("Touch", touchPositions, gpe)
-		end
-	end)
-
-	local conn4 = UserInputService.InputChanged:Connect(function(input, gpe)
-		if gpe then return end
-
-		if input.UserInputType == Enum.UserInputType.Gamepad1 then
-			if input.KeyCode == Enum.KeyCode.Thumbstick1 or input.KeyCode == Enum.KeyCode.Thumbstick2 then
-				self.OnThumbstick:Fire(input.KeyCode, input.Position)
+function InputClass:InitInputListeners()
+	local function processInput(input: InputObject, state: Enum.UserInputState, gameProcessed: boolean)
+		for actionName, binding in pairs(self._bindings) do
+			if matchesInput(input, binding.Inputs) then
+				task.spawn(binding.Callback, actionName, state, input, gameProcessed)
 			end
 		end
+	end
 
-		if input.UserInputType == Enum.UserInputType.Touch then
-			self.OnTouchMoved:Fire(input.Position)
-		end
+	local beganConn = UserInputService.InputBegan:Connect(function(input, gpe)
+		processInput(input, Enum.UserInputState.Begin, gpe)
 	end)
-	
-	table.insert(self._connections, conn1)
-	table.insert(self._connections, conn2)
-	table.insert(self._connections, conn3)
-	table.insert(self._connections, conn4)
+
+	local endedConn = UserInputService.InputEnded:Connect(function(input, gpe)
+		processInput(input, Enum.UserInputState.End, gpe)
+	end)
+
+	local changedConn = UserInputService.InputChanged:Connect(function(input, gpe)
+		processInput(input, Enum.UserInputState.Change, gpe)
+	end)
+
+	table.insert(self._connections, beganConn)
+	table.insert(self._connections, endedConn)
+	table.insert(self._connections, changedConn)
 end
 
 function InputClass:Destroy()
@@ -146,13 +143,9 @@ function InputClass:Destroy()
 		conn:Disconnect()
 	end
 	table.clear(self._connections)
-
-	self.OnClick:Destroy()
-	self.InputBegan:Destroy()
-	self.InputEnded:Destroy()
-	self.OnThumbstick:Destroy()
-	self.OnTouchMoved:Destroy()
-	self.OnHover:Destroy()
+	table.clear(self._bindings)
+	self._hoverCallback = nil
+	self.HoveredInstance = nil
 end
 
 return InputClass

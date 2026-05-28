@@ -9,12 +9,12 @@ local LocalPlayer = Players.LocalPlayer
 local COLLISION_GROUP_NAME = "NpcCollideable"
 local NPC_TAG = "NPC"
 
-local CharacterController = {}
+local CharacterController = {
+	CharacterAdded = Signal.new(),
+	CharacterRemoving = Signal.new()
+}
 
 function CharacterController:Init()
-	self.CharacterAdded = Signal.new()
-	self.CharacterRemoving = Signal.new()
-
 	self.PlayerData = {} 
 	self.NPCData = {}    
 

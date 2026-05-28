@@ -1,7 +1,7 @@
 local Players           = game:GetService("Players")
 
 local Dumpster = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packages'):FindFirstChild('Dumpster'))
-local Net = require(game:GetService('ServerScriptService'):FindFirstChild('Net'))
+local Net = require(game:GetService('ServerScriptService'):FindFirstChild('Constants'):FindFirstChild('Net'))
 
 local AudioService = {}
 

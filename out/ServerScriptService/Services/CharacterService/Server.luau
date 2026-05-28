@@ -154,7 +154,7 @@ function CharacterService:UnregisterCharacter(model)
 	end
 end
 
-function CharacterService:GetCharacter(target)
+function CharacterService:GetCharacter(target):CharacterData?
 	if not target then return nil end
 
 	local model
@@ -172,7 +172,7 @@ function CharacterService:GetCharacter(target)
 	end
 
 	if model then
-		return self._registry[model]
+		return self._registry[model] :: CharacterData
 	end
 
 	return nil

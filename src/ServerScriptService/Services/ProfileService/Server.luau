@@ -10,9 +10,9 @@ local ServerStorage = game:GetService("ServerStorage")
 local Promise = require("@Pckgs/Promise")
 local Signal = require("@Pckgs/Signal")
 local TableUtil = require("@Pckgs/TableUtil")
-local ProfileStore = require("@SSS/ProfileStore") 
+local ProfileStore = require("@SSS/Constants/ProfileStore") 
 
-local Net = require("@SSS/Net")
+local Net = require("../../Constants/Net")
 
 -------------------------- Constants --------------------------
 local STORE_NAME = "FullStarStudios"

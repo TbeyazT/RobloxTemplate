@@ -156,6 +156,9 @@ if not RunService:IsRunning() then
 		UpgradeBrainrot = table.freeze({
 			Call = noop
 		}),
+		UnequipTool = table.freeze({
+			Fire = noop
+		}),
 		UnassignBrainrot = table.freeze({
 			Fire = noop
 		}),
@@ -209,6 +212,9 @@ if not RunService:IsRunning() then
 		}),
 		FoodCapacityUpdated = table.freeze({
 			On = noop
+		}),
+		EquipTool = table.freeze({
+			Fire = noop
 		}),
 		EditTutorial = table.freeze({
 			Call = noop
@@ -979,7 +985,7 @@ local returns = {
 				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
 			end
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
 			local len_27 = #Value
@@ -992,18 +998,30 @@ local returns = {
 			return coroutine.yield()
 		end,
 	},
+	UnequipTool = {
+		Fire = function(Value: (string))
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+			local len_28 = #Value
+			assert(utf8.len(Value) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_28)
+			alloc(len_28)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value, len_28)
+		end,
+	},
 	UnassignBrainrot = {
 		Fire = function(Value: ({
 			["ID"]: (string),
 		}))
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 1)
-			local len_28 = #Value["ID"]
+			local len_29 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_28)
-			alloc(len_28)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_28)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_29)
+			alloc(len_29)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_29)
 		end,
 	},
 	StopEatingFood = {
@@ -1021,15 +1039,15 @@ local returns = {
 				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
 			end
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
-			local len_29 = #Value
+			local len_30 = #Value
 			assert(utf8.len(Value) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_29)
-			alloc(len_29)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value, len_29)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_30)
+			alloc(len_30)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value, len_30)
 			reliable_event_queue[24][function_call_id] = coroutine.running()
 			return coroutine.yield()
 		end,
@@ -1043,7 +1061,7 @@ local returns = {
 				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
 			end
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
 			local bool_15 = 0
@@ -1060,12 +1078,12 @@ local returns = {
 		Fire = function(Value: (string))
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
-			local len_30 = #Value
+			local len_31 = #Value
 			assert(utf8.len(Value) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_30)
-			alloc(len_30)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value, len_30)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_31)
+			alloc(len_31)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value, len_31)
 		end,
 	},
 	PlotRemoved = {
@@ -1171,12 +1189,12 @@ local returns = {
 		}))
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 5)
-			local len_31 = #Value["ID"]
+			local len_32 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_31)
-			alloc(len_31)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_31)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_32)
+			alloc(len_32)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_32)
 		end,
 	},
 	FoodSpawned = {
@@ -1261,6 +1279,18 @@ local returns = {
 			end
 		end,
 	},
+	EquipTool = {
+		Fire = function(Value: (string))
+			alloc(1)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
+			local len_33 = #Value
+			assert(utf8.len(Value) ~= nil, "value is not valid utf-8")
+			alloc(2)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_33)
+			alloc(len_33)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value, len_33)
+		end,
+	},
 	EditTutorial = {
 		Call = function(Value: ({
 			["Key"]: (string),
@@ -1273,17 +1303,17 @@ local returns = {
 				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
 			end
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
 			local bool_16 = 0
 			local bool_16_pos_1 = alloc(1)
-			local len_32 = #Value["Key"]
+			local len_34 = #Value["Key"]
 			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_32)
-			alloc(len_32)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_32)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_34)
+			alloc(len_34)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_34)
 			if Value["Value"] ~= nil then
 				bool_16 = bit32.bor(bool_16, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["Value"])
@@ -1344,15 +1374,15 @@ local returns = {
 				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
 			end
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
-			local len_33 = #Value["ID"]
+			local len_35 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_33)
-			alloc(len_33)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_33)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_35)
+			alloc(len_35)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_35)
 			reliable_event_queue[22][function_call_id] = coroutine.running()
 			return coroutine.yield()
 		end,
@@ -1366,15 +1396,15 @@ local returns = {
 				error("Zap has more than 256 calls awaiting a response, and therefore this packet has been dropped")
 			end
 			alloc(1)
-			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
+			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, function_call_id)
-			local len_34 = #Value
+			local len_36 = #Value
 			assert(utf8.len(Value) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_34)
-			alloc(len_34)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value, len_34)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_36)
+			alloc(len_36)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value, len_36)
 			reliable_event_queue[19][function_call_id] = coroutine.running()
 			return coroutine.yield()
 		end,
@@ -1394,12 +1424,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 0)
 			local bool_17 = 0
 			local bool_17_pos_1 = alloc(1)
-			local len_35 = #Value["ID"]
+			local len_37 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_35)
-			alloc(len_35)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_35)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_37)
+			alloc(len_37)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_37)
 			if Value["plotNumber"] ~= nil then
 				bool_17 = bit32.bor(bool_17, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["plotNumber"])

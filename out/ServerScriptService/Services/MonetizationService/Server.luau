@@ -2,7 +2,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 
 local Framework = require(game:GetService('ReplicatedStorage'):FindFirstChild('Shared'):FindFirstChild('Framework'))
-local Net = require(game:GetService('ServerScriptService'):FindFirstChild('Net'))
+local Net = require(game:GetService('ServerScriptService'):FindFirstChild('Constants'):FindFirstChild('Net'))
 
 local Config = require(game:GetService('ReplicatedStorage'):FindFirstChild('Shared'):FindFirstChild('Modules'):FindFirstChild('Core'):FindFirstChild('MonetizationConfig'))
 

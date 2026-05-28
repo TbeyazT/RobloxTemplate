@@ -182,6 +182,9 @@ if not RunService:IsRunning() then
 		UpgradeBrainrot = table.freeze({
 			SetCallback = noop
 		}),
+		UnequipTool = table.freeze({
+			SetCallback = noop
+		}),
 		UnassignBrainrot = table.freeze({
 			SetCallback = noop
 		}),
@@ -280,6 +283,9 @@ if not RunService:IsRunning() then
 			FireList = noop,
 			FireSet = noop
 		}),
+		EquipTool = table.freeze({
+			SetCallback = noop
+		}),
 		EditTutorial = table.freeze({
 			SetCallback = noop
 		}),
@@ -361,7 +367,7 @@ end
 
 RunService.Heartbeat:Connect(SendEvents)
 
-local reliable_events = table.create(15)
+local reliable_events = table.create(17)
 reliable_events[6] = {}
 reliable.OnServerEvent:Connect(function(player, buff, inst)
 	incoming_buff = buff
@@ -381,11 +387,19 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 			if reliable_events[8] then
 				task.spawn(reliable_events[8], player, value)
 			end
+		elseif id == 10 then -- UnequipTool
+			local value
+			local len_2 = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len_2), len_2)
+			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
+			if reliable_events[10] then
+				task.spawn(reliable_events[10], player, value)
+			end
 		elseif id == 1 then -- UnassignBrainrot
 			local value
 			value = {  }
-			local len_2 = buffer.readu16(incoming_buff, read(2))
-			value["ID"] = buffer.readstring(incoming_buff, read(len_2), len_2)
+			local len_3 = buffer.readu16(incoming_buff, read(2))
+			value["ID"] = buffer.readstring(incoming_buff, read(len_3), len_3)
 			assert(utf8.len(value["ID"]) ~= nil, "value is not valid utf-8")
 			if reliable_events[1] then
 				task.spawn(reliable_events[1], player, value)
@@ -397,8 +411,8 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 			end
 		elseif id == 7 then -- PromptProduct
 			local value
-			local len_3 = buffer.readu16(incoming_buff, read(2))
-			value = buffer.readstring(incoming_buff, read(len_3), len_3)
+			local len_4 = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len_4), len_4)
 			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
 			if reliable_events[7] then
 				task.spawn(reliable_events[7], player, value)
@@ -411,11 +425,19 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 		elseif id == 5 then -- GrabBrainrot
 			local value
 			value = {  }
-			local len_4 = buffer.readu16(incoming_buff, read(2))
-			value["ID"] = buffer.readstring(incoming_buff, read(len_4), len_4)
+			local len_5 = buffer.readu16(incoming_buff, read(2))
+			value["ID"] = buffer.readstring(incoming_buff, read(len_5), len_5)
 			assert(utf8.len(value["ID"]) ~= nil, "value is not valid utf-8")
 			if reliable_events[5] then
 				task.spawn(reliable_events[5], player, value)
+			end
+		elseif id == 9 then -- EquipTool
+			local value
+			local len_6 = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len_6), len_6)
+			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
+			if reliable_events[9] then
+				task.spawn(reliable_events[9], player, value)
 			end
 		elseif id == 6 then -- DropBrainrot
 			local value
@@ -431,8 +453,8 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 			local value
 			local bool_1 = buffer.readu8(incoming_buff, read(1))
 			value = {  }
-			local len_5 = buffer.readu16(incoming_buff, read(2))
-			value["ID"] = buffer.readstring(incoming_buff, read(len_5), len_5)
+			local len_7 = buffer.readu16(incoming_buff, read(2))
+			value["ID"] = buffer.readstring(incoming_buff, read(len_7), len_7)
 			assert(utf8.len(value["ID"]) ~= nil, "value is not valid utf-8")
 			if bit32.btest(bool_1, 0b0000000000000001) then
 				incoming_ipos = incoming_ipos + 1
@@ -443,38 +465,38 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 			if reliable_events[0] then
 				task.spawn(reliable_events[0], player, value)
 			end
-		elseif id == 13 then -- UpgradeBrainrot
-			local call_id = buffer.readu8(buff, read(1))
-			local value
-			local len_6 = buffer.readu16(incoming_buff, read(2))
-			value = buffer.readstring(incoming_buff, read(len_6), len_6)
-			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
-			if reliable_events[13] then
-				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[13](player_2, value_1)
-					load_player(player_2)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, 23)
-					alloc(1)
-					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
-					local len_7 = #ret_1
-					assert(utf8.len(ret_1) ~= nil, "value is not valid utf-8")
-					alloc(2)
-					buffer.writeu16(outgoing_buff, outgoing_apos, len_7)
-					alloc(len_7)
-					buffer.writestring(outgoing_buff, outgoing_apos, ret_1, len_7)
-					player_map[player_2] = save()
-				end, player, call_id, value)
-			end
-		elseif id == 14 then -- StartEatingFood
+		elseif id == 15 then -- UpgradeBrainrot
 			local call_id = buffer.readu8(buff, read(1))
 			local value
 			local len_8 = buffer.readu16(incoming_buff, read(2))
 			value = buffer.readstring(incoming_buff, read(len_8), len_8)
 			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
-			if reliable_events[14] then
+			if reliable_events[15] then
 				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[14](player_2, value_1)
+					local ret_1 = reliable_events[15](player_2, value_1)
+					load_player(player_2)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, 23)
+					alloc(1)
+					buffer.writeu8(outgoing_buff, outgoing_apos, call_id_2)
+					local len_9 = #ret_1
+					assert(utf8.len(ret_1) ~= nil, "value is not valid utf-8")
+					alloc(2)
+					buffer.writeu16(outgoing_buff, outgoing_apos, len_9)
+					alloc(len_9)
+					buffer.writestring(outgoing_buff, outgoing_apos, ret_1, len_9)
+					player_map[player_2] = save()
+				end, player, call_id, value)
+			end
+		elseif id == 16 then -- StartEatingFood
+			local call_id = buffer.readu8(buff, read(1))
+			local value
+			local len_10 = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len_10), len_10)
+			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
+			if reliable_events[16] then
+				task.spawn(function(player_2, call_id_2, value_1)
+					local ret_1 = reliable_events[16](player_2, value_1)
 					load_player(player_2)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, 24)
@@ -489,14 +511,14 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					player_map[player_2] = save()
 				end, player, call_id, value)
 			end
-		elseif id == 11 then -- Rebirth
+		elseif id == 13 then -- Rebirth
 			local call_id = buffer.readu8(buff, read(1))
 			local value
 			local bool_3 = buffer.readu8(incoming_buff, read(1))
 			value = bit32.btest(bool_3, 0b0000000000000001)
-			if reliable_events[11] then
+			if reliable_events[13] then
 				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[11](player_2, value_1)
+					local ret_1 = reliable_events[13](player_2, value_1)
 					load_player(player_2)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, 21)
@@ -512,13 +534,13 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					player_map[player_2] = save()
 				end, player, call_id, value)
 			end
-		elseif id == 10 then -- EditTutorial
+		elseif id == 12 then -- EditTutorial
 			local call_id = buffer.readu8(buff, read(1))
 			local value
 			local bool_5 = buffer.readu8(incoming_buff, read(1))
 			value = {  }
-			local len_9 = buffer.readu16(incoming_buff, read(2))
-			value["Key"] = buffer.readstring(incoming_buff, read(len_9), len_9)
+			local len_11 = buffer.readu16(incoming_buff, read(2))
+			value["Key"] = buffer.readstring(incoming_buff, read(len_11), len_11)
 			assert(utf8.len(value["Key"]) ~= nil, "value is not valid utf-8")
 			if bit32.btest(bool_5, 0b0000000000000001) then
 				incoming_ipos = incoming_ipos + 1
@@ -526,9 +548,9 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 			else
 				value["Value"] = nil
 			end
-			if reliable_events[10] then
+			if reliable_events[12] then
 				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[10](player_2, value_1)
+					local ret_1 = reliable_events[12](player_2, value_1)
 					load_player(player_2)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, 20)
@@ -537,16 +559,16 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					player_map[player_2] = save()
 				end, player, call_id, value)
 			end
-		elseif id == 12 then -- ClaimBrainrotCash
+		elseif id == 14 then -- ClaimBrainrotCash
 			local call_id = buffer.readu8(buff, read(1))
 			local value
 			value = {  }
-			local len_10 = buffer.readu16(incoming_buff, read(2))
-			value["ID"] = buffer.readstring(incoming_buff, read(len_10), len_10)
+			local len_12 = buffer.readu16(incoming_buff, read(2))
+			value["ID"] = buffer.readstring(incoming_buff, read(len_12), len_12)
 			assert(utf8.len(value["ID"]) ~= nil, "value is not valid utf-8")
-			if reliable_events[12] then
+			if reliable_events[14] then
 				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[12](player_2, value_1)
+					local ret_1 = reliable_events[14](player_2, value_1)
 					load_player(player_2)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, 22)
@@ -563,15 +585,15 @@ reliable.OnServerEvent:Connect(function(player, buff, inst)
 					player_map[player_2] = save()
 				end, player, call_id, value)
 			end
-		elseif id == 9 then -- ChangeSetting
+		elseif id == 11 then -- ChangeSetting
 			local call_id = buffer.readu8(buff, read(1))
 			local value
-			local len_11 = buffer.readu16(incoming_buff, read(2))
-			value = buffer.readstring(incoming_buff, read(len_11), len_11)
+			local len_13 = buffer.readu16(incoming_buff, read(2))
+			value = buffer.readstring(incoming_buff, read(len_13), len_13)
 			assert(utf8.len(value) ~= nil, "value is not valid utf-8")
-			if reliable_events[9] then
+			if reliable_events[11] then
 				task.spawn(function(player_2, call_id_2, value_1)
-					local ret_1 = reliable_events[9](player_2, value_1)
+					local ret_1 = reliable_events[11](player_2, value_1)
 					load_player(player_2)
 					alloc(1)
 					buffer.writeu8(outgoing_buff, outgoing_apos, 19)
@@ -609,18 +631,18 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
 			local bool_8 = 0
 			local bool_8_pos_1 = alloc(1)
-			local len_12 = #Value["ID"]
+			local len_14 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_12)
-			alloc(len_12)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_12)
-			local len_13 = #Value["Name"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_14)
+			alloc(len_14)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_14)
+			local len_15 = #Value["Name"]
 			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_13)
-			alloc(len_13)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_13)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_15)
+			alloc(len_15)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_15)
 			local axis_1, angle_1 = Value["CFrame"]:ToAxisAngle()
 			axis_1 = axis_1 * angle_1
 			alloc(4)
@@ -656,18 +678,18 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
 			local bool_9 = 0
 			local bool_9_pos_1 = alloc(1)
-			local len_14 = #Value["ID"]
+			local len_16 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_14)
-			alloc(len_14)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_14)
-			local len_15 = #Value["Name"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_16)
+			alloc(len_16)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_16)
+			local len_17 = #Value["Name"]
 			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_15)
-			alloc(len_15)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_15)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_17)
+			alloc(len_17)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_17)
 			local axis_2, angle_2 = Value["CFrame"]:ToAxisAngle()
 			axis_2 = axis_2 * angle_2
 			alloc(4)
@@ -710,18 +732,18 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
 			local bool_10 = 0
 			local bool_10_pos_1 = alloc(1)
-			local len_16 = #Value["ID"]
+			local len_18 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_16)
-			alloc(len_16)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_16)
-			local len_17 = #Value["Name"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_18)
+			alloc(len_18)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_18)
+			local len_19 = #Value["Name"]
 			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_17)
-			alloc(len_17)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_17)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_19)
+			alloc(len_19)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_19)
 			local axis_3, angle_3 = Value["CFrame"]:ToAxisAngle()
 			axis_3 = axis_3 * angle_3
 			alloc(4)
@@ -766,18 +788,18 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
 			local bool_11 = 0
 			local bool_11_pos_1 = alloc(1)
-			local len_18 = #Value["ID"]
+			local len_20 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_18)
-			alloc(len_18)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_18)
-			local len_19 = #Value["Name"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_20)
+			alloc(len_20)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_20)
+			local len_21 = #Value["Name"]
 			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_19)
-			alloc(len_19)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_19)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_21)
+			alloc(len_21)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_21)
 			local axis_4, angle_4 = Value["CFrame"]:ToAxisAngle()
 			axis_4 = axis_4 * angle_4
 			alloc(4)
@@ -820,18 +842,18 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 15)
 			local bool_12 = 0
 			local bool_12_pos_1 = alloc(1)
-			local len_20 = #Value["ID"]
+			local len_22 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_20)
-			alloc(len_20)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_20)
-			local len_21 = #Value["Name"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_22)
+			alloc(len_22)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_22)
+			local len_23 = #Value["Name"]
 			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_21)
-			alloc(len_21)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_21)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_23)
+			alloc(len_23)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_23)
 			local axis_5, angle_5 = Value["CFrame"]:ToAxisAngle()
 			axis_5 = axis_5 * angle_5
 			alloc(4)
@@ -874,25 +896,25 @@ local returns = {
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
-			local len_22 = #Value
+			local len_24 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_22)
-			for i_1 = 1, len_22 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_24)
+			for i_1 = 1, len_24 do
 				local bool_13 = 0
 				local bool_13_pos_1 = alloc(1)
 				local val_1 = Value[i_1]
-				local len_23 = #val_1["ID"]
+				local len_25 = #val_1["ID"]
 				assert(utf8.len(val_1["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_23)
-				alloc(len_23)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_1["ID"], len_23)
-				local len_24 = #val_1["Name"]
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_25)
+				alloc(len_25)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_1["ID"], len_25)
+				local len_26 = #val_1["Name"]
 				assert(utf8.len(val_1["Name"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_24)
-				alloc(len_24)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_1["Name"], len_24)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_26)
+				alloc(len_26)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_1["Name"], len_26)
 				local axis_6, angle_6 = val_1["CFrame"]:ToAxisAngle()
 				axis_6 = axis_6 * angle_6
 				alloc(4)
@@ -927,25 +949,25 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
-			local len_25 = #Value
+			local len_27 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_25)
-			for i_2 = 1, len_25 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_27)
+			for i_2 = 1, len_27 do
 				local bool_14 = 0
 				local bool_14_pos_1 = alloc(1)
 				local val_2 = Value[i_2]
-				local len_26 = #val_2["ID"]
+				local len_28 = #val_2["ID"]
 				assert(utf8.len(val_2["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_26)
-				alloc(len_26)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_2["ID"], len_26)
-				local len_27 = #val_2["Name"]
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_28)
+				alloc(len_28)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_2["ID"], len_28)
+				local len_29 = #val_2["Name"]
 				assert(utf8.len(val_2["Name"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_27)
-				alloc(len_27)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_2["Name"], len_27)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_29)
+				alloc(len_29)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_2["Name"], len_29)
 				local axis_7, angle_7 = val_2["CFrame"]:ToAxisAngle()
 				axis_7 = axis_7 * angle_7
 				alloc(4)
@@ -987,25 +1009,25 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
-			local len_28 = #Value
+			local len_30 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_28)
-			for i_3 = 1, len_28 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_30)
+			for i_3 = 1, len_30 do
 				local bool_15 = 0
 				local bool_15_pos_1 = alloc(1)
 				local val_3 = Value[i_3]
-				local len_29 = #val_3["ID"]
+				local len_31 = #val_3["ID"]
 				assert(utf8.len(val_3["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_29)
-				alloc(len_29)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_3["ID"], len_29)
-				local len_30 = #val_3["Name"]
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_31)
+				alloc(len_31)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_3["ID"], len_31)
+				local len_32 = #val_3["Name"]
 				assert(utf8.len(val_3["Name"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_30)
-				alloc(len_30)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_3["Name"], len_30)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_32)
+				alloc(len_32)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_3["Name"], len_32)
 				local axis_8, angle_8 = val_3["CFrame"]:ToAxisAngle()
 				axis_8 = axis_8 * angle_8
 				alloc(4)
@@ -1049,25 +1071,25 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
-			local len_31 = #Value
+			local len_33 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_31)
-			for i_4 = 1, len_31 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_33)
+			for i_4 = 1, len_33 do
 				local bool_16 = 0
 				local bool_16_pos_1 = alloc(1)
 				local val_4 = Value[i_4]
-				local len_32 = #val_4["ID"]
+				local len_34 = #val_4["ID"]
 				assert(utf8.len(val_4["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_32)
-				alloc(len_32)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_4["ID"], len_32)
-				local len_33 = #val_4["Name"]
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_34)
+				alloc(len_34)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_4["ID"], len_34)
+				local len_35 = #val_4["Name"]
 				assert(utf8.len(val_4["Name"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_33)
-				alloc(len_33)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_4["Name"], len_33)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_35)
+				alloc(len_35)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_4["Name"], len_35)
 				local axis_9, angle_9 = val_4["CFrame"]:ToAxisAngle()
 				axis_9 = axis_9 * angle_9
 				alloc(4)
@@ -1109,25 +1131,25 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 14)
-			local len_34 = #Value
+			local len_36 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_34)
-			for i_5 = 1, len_34 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_36)
+			for i_5 = 1, len_36 do
 				local bool_17 = 0
 				local bool_17_pos_1 = alloc(1)
 				local val_5 = Value[i_5]
-				local len_35 = #val_5["ID"]
+				local len_37 = #val_5["ID"]
 				assert(utf8.len(val_5["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_35)
-				alloc(len_35)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_5["ID"], len_35)
-				local len_36 = #val_5["Name"]
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_37)
+				alloc(len_37)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_5["ID"], len_37)
+				local len_38 = #val_5["Name"]
 				assert(utf8.len(val_5["Name"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_36)
-				alloc(len_36)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_5["Name"], len_36)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_38)
+				alloc(len_38)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_5["Name"], len_38)
 				local axis_10, angle_10 = val_5["CFrame"]:ToAxisAngle()
 				axis_10 = axis_10 * angle_10
 				alloc(4)
@@ -1167,12 +1189,12 @@ local returns = {
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
-			local len_37 = #Value["ID"]
+			local len_39 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_37)
-			alloc(len_37)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_37)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_39)
+			alloc(len_39)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_39)
 			player_map[Player] = save()
 		end,
 		FireAll = function(Value: ({
@@ -1181,12 +1203,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
-			local len_38 = #Value["ID"]
+			local len_40 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_38)
-			alloc(len_38)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_38)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_40)
+			alloc(len_40)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_40)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				load_player(player)
@@ -1202,12 +1224,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
-			local len_39 = #Value["ID"]
+			local len_41 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_39)
-			alloc(len_39)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_39)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_41)
+			alloc(len_41)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_41)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				if player ~= Except then
@@ -1225,12 +1247,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
-			local len_40 = #Value["ID"]
+			local len_42 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_40)
-			alloc(len_40)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_40)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_42)
+			alloc(len_42)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_42)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
 				load_player(player)
@@ -1246,12 +1268,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 16)
-			local len_41 = #Value["ID"]
+			local len_43 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_41)
-			alloc(len_41)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_41)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_43)
+			alloc(len_43)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_43)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for player in Set do
 				load_player(player)
@@ -1269,12 +1291,12 @@ local returns = {
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
-			local len_42 = #Value["WallName"]
+			local len_44 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_42)
-			alloc(len_42)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_42)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_44)
+			alloc(len_44)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_44)
 			player_map[Player] = save()
 		end,
 		FireAll = function(Value: ({
@@ -1283,12 +1305,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
-			local len_43 = #Value["WallName"]
+			local len_45 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_43)
-			alloc(len_43)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_43)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_45)
+			alloc(len_45)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_45)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				load_player(player)
@@ -1304,12 +1326,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
-			local len_44 = #Value["WallName"]
+			local len_46 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_44)
-			alloc(len_44)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_44)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_46)
+			alloc(len_46)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_46)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				if player ~= Except then
@@ -1327,12 +1349,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
-			local len_45 = #Value["WallName"]
+			local len_47 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_45)
-			alloc(len_45)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_45)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_47)
+			alloc(len_47)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_47)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
 				load_player(player)
@@ -1348,12 +1370,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 13)
-			local len_46 = #Value["WallName"]
+			local len_48 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_46)
-			alloc(len_46)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_46)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_48)
+			alloc(len_48)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_48)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for player in Set do
 				load_player(player)
@@ -1371,12 +1393,12 @@ local returns = {
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
-			local len_47 = #Value["WallName"]
+			local len_49 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_47)
-			alloc(len_47)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_47)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_49)
+			alloc(len_49)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_49)
 			player_map[Player] = save()
 		end,
 		FireAll = function(Value: ({
@@ -1385,12 +1407,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
-			local len_48 = #Value["WallName"]
+			local len_50 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_48)
-			alloc(len_48)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_48)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_50)
+			alloc(len_50)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_50)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				load_player(player)
@@ -1406,12 +1428,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
-			local len_49 = #Value["WallName"]
+			local len_51 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_49)
-			alloc(len_49)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_49)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_51)
+			alloc(len_51)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_51)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				if player ~= Except then
@@ -1429,12 +1451,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
-			local len_50 = #Value["WallName"]
+			local len_52 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_50)
-			alloc(len_50)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_50)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_52)
+			alloc(len_52)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_52)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
 				load_player(player)
@@ -1450,12 +1472,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 12)
-			local len_51 = #Value["WallName"]
+			local len_53 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_51)
-			alloc(len_51)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_51)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_53)
+			alloc(len_53)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_53)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for player in Set do
 				load_player(player)
@@ -1475,12 +1497,12 @@ local returns = {
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
-			local len_52 = #Value["WallName"]
+			local len_54 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_52)
-			alloc(len_52)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_52)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_54)
+			alloc(len_54)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_54)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["Durability"])
 			alloc(8)
@@ -1495,12 +1517,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
-			local len_53 = #Value["WallName"]
+			local len_55 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_53)
-			alloc(len_53)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_53)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_55)
+			alloc(len_55)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_55)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["Durability"])
 			alloc(8)
@@ -1522,12 +1544,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
-			local len_54 = #Value["WallName"]
+			local len_56 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_54)
-			alloc(len_54)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_54)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_56)
+			alloc(len_56)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_56)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["Durability"])
 			alloc(8)
@@ -1551,12 +1573,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
-			local len_55 = #Value["WallName"]
+			local len_57 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_55)
-			alloc(len_55)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_55)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_57)
+			alloc(len_57)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_57)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["Durability"])
 			alloc(8)
@@ -1578,12 +1600,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 11)
-			local len_56 = #Value["WallName"]
+			local len_58 = #Value["WallName"]
 			assert(utf8.len(Value["WallName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_56)
-			alloc(len_56)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_56)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_58)
+			alloc(len_58)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["WallName"], len_58)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["Durability"])
 			alloc(8)
@@ -1611,9 +1633,17 @@ local returns = {
 	},
 	UpgradeBrainrot = {
 		SetCallback = function(Callback: (Player: Player, Value: (string)) -> ((string))): () -> ()
-			reliable_events[13] = Callback
+			reliable_events[15] = Callback
 			return function()
-				reliable_events[13] = nil
+				reliable_events[15] = nil
+			end
+		end,
+	},
+	UnequipTool = {
+		SetCallback = function(Callback: (Player: Player, Value: (string)) -> ()): () -> ()
+			reliable_events[10] = Callback
+			return function()
+				reliable_events[10] = nil
 			end
 		end,
 	},
@@ -1637,17 +1667,17 @@ local returns = {
 	},
 	StartEatingFood = {
 		SetCallback = function(Callback: (Player: Player, Value: (string)) -> ((boolean))): () -> ()
-			reliable_events[14] = Callback
+			reliable_events[16] = Callback
 			return function()
-				reliable_events[14] = nil
+				reliable_events[16] = nil
 			end
 		end,
 	},
 	Rebirth = {
 		SetCallback = function(Callback: (Player: Player, Value: (boolean)) -> (((unknown)))): () -> ()
-			reliable_events[11] = Callback
+			reliable_events[13] = Callback
 			return function()
-				reliable_events[11] = nil
+				reliable_events[13] = nil
 			end
 		end,
 	},
@@ -1984,17 +2014,17 @@ local returns = {
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
 			table.insert(outgoing_inst, Value["Player"])
-			local len_57 = #Value["CarriedList"]
+			local len_59 = #Value["CarriedList"]
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_57)
-			for i_6 = 1, len_57 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_59)
+			for i_6 = 1, len_59 do
 				local val_6 = Value["CarriedList"][i_6]
-				local len_58 = #val_6
+				local len_60 = #val_6
 				assert(utf8.len(val_6) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_58)
-				alloc(len_58)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_6, len_58)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_60)
+				alloc(len_60)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_6, len_60)
 			end
 			player_map[Player] = save()
 		end,
@@ -2006,17 +2036,17 @@ local returns = {
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
 			table.insert(outgoing_inst, Value["Player"])
-			local len_59 = #Value["CarriedList"]
+			local len_61 = #Value["CarriedList"]
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_59)
-			for i_7 = 1, len_59 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_61)
+			for i_7 = 1, len_61 do
 				local val_7 = Value["CarriedList"][i_7]
-				local len_60 = #val_7
+				local len_62 = #val_7
 				assert(utf8.len(val_7) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_60)
-				alloc(len_60)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_7, len_60)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_62)
+				alloc(len_62)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_7, len_62)
 			end
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
@@ -2035,17 +2065,17 @@ local returns = {
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
 			table.insert(outgoing_inst, Value["Player"])
-			local len_61 = #Value["CarriedList"]
+			local len_63 = #Value["CarriedList"]
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_61)
-			for i_8 = 1, len_61 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_63)
+			for i_8 = 1, len_63 do
 				local val_8 = Value["CarriedList"][i_8]
-				local len_62 = #val_8
+				local len_64 = #val_8
 				assert(utf8.len(val_8) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_62)
-				alloc(len_62)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_8, len_62)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_64)
+				alloc(len_64)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_8, len_64)
 			end
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
@@ -2066,17 +2096,17 @@ local returns = {
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
 			table.insert(outgoing_inst, Value["Player"])
-			local len_63 = #Value["CarriedList"]
+			local len_65 = #Value["CarriedList"]
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_63)
-			for i_9 = 1, len_63 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_65)
+			for i_9 = 1, len_65 do
 				local val_9 = Value["CarriedList"][i_9]
-				local len_64 = #val_9
+				local len_66 = #val_9
 				assert(utf8.len(val_9) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_64)
-				alloc(len_64)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_9, len_64)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_66)
+				alloc(len_66)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_9, len_66)
 			end
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
@@ -2095,17 +2125,17 @@ local returns = {
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 17)
 			table.insert(outgoing_inst, Value["Player"])
-			local len_65 = #Value["CarriedList"]
+			local len_67 = #Value["CarriedList"]
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_65)
-			for i_10 = 1, len_65 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_67)
+			for i_10 = 1, len_67 do
 				local val_10 = Value["CarriedList"][i_10]
-				local len_66 = #val_10
+				local len_68 = #val_10
 				assert(utf8.len(val_10) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_66)
-				alloc(len_66)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_10, len_66)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_68)
+				alloc(len_68)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_10, len_68)
 			end
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for player in Set do
@@ -2127,12 +2157,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
 			local bool_18 = 0
 			local bool_18_pos_1 = alloc(1)
-			local len_67 = #Value["SoundName"]
+			local len_69 = #Value["SoundName"]
 			assert(utf8.len(Value["SoundName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_67)
-			alloc(len_67)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_67)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_69)
+			alloc(len_69)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_69)
 			if Value["properties"] ~= nil then
 				bool_18 = bit32.bor(bool_18, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["properties"])
@@ -2149,12 +2179,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
 			local bool_19 = 0
 			local bool_19_pos_1 = alloc(1)
-			local len_68 = #Value["SoundName"]
+			local len_70 = #Value["SoundName"]
 			assert(utf8.len(Value["SoundName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_68)
-			alloc(len_68)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_68)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_70)
+			alloc(len_70)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_70)
 			if Value["properties"] ~= nil then
 				bool_19 = bit32.bor(bool_19, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["properties"])
@@ -2178,12 +2208,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
 			local bool_20 = 0
 			local bool_20_pos_1 = alloc(1)
-			local len_69 = #Value["SoundName"]
+			local len_71 = #Value["SoundName"]
 			assert(utf8.len(Value["SoundName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_69)
-			alloc(len_69)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_69)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_71)
+			alloc(len_71)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_71)
 			if Value["properties"] ~= nil then
 				bool_20 = bit32.bor(bool_20, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["properties"])
@@ -2209,12 +2239,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
 			local bool_21 = 0
 			local bool_21_pos_1 = alloc(1)
-			local len_70 = #Value["SoundName"]
+			local len_72 = #Value["SoundName"]
 			assert(utf8.len(Value["SoundName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_70)
-			alloc(len_70)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_70)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_72)
+			alloc(len_72)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_72)
 			if Value["properties"] ~= nil then
 				bool_21 = bit32.bor(bool_21, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["properties"])
@@ -2238,12 +2268,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 2)
 			local bool_22 = 0
 			local bool_22_pos_1 = alloc(1)
-			local len_71 = #Value["SoundName"]
+			local len_73 = #Value["SoundName"]
 			assert(utf8.len(Value["SoundName"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_71)
-			alloc(len_71)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_71)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_73)
+			alloc(len_73)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["SoundName"], len_73)
 			if Value["properties"] ~= nil then
 				bool_22 = bit32.bor(bool_22, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["properties"])
@@ -2272,12 +2302,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
 			local bool_23 = 0
 			local bool_23_pos_1 = alloc(1)
-			local len_72 = #Value["Text"]
+			local len_74 = #Value["Text"]
 			assert(utf8.len(Value["Text"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_72)
-			alloc(len_72)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_72)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_74)
+			alloc(len_74)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_74)
 			alloc(4)
 			buffer.writef32(outgoing_buff, outgoing_apos, Value["Duration"])
 			if Value["TextColor"] ~= nil then
@@ -2315,12 +2345,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
 			local bool_24 = 0
 			local bool_24_pos_1 = alloc(1)
-			local len_73 = #Value["Text"]
+			local len_75 = #Value["Text"]
 			assert(utf8.len(Value["Text"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_73)
-			alloc(len_73)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_73)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_75)
+			alloc(len_75)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_75)
 			alloc(4)
 			buffer.writef32(outgoing_buff, outgoing_apos, Value["Duration"])
 			if Value["TextColor"] ~= nil then
@@ -2365,12 +2395,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
 			local bool_25 = 0
 			local bool_25_pos_1 = alloc(1)
-			local len_74 = #Value["Text"]
+			local len_76 = #Value["Text"]
 			assert(utf8.len(Value["Text"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_74)
-			alloc(len_74)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_74)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_76)
+			alloc(len_76)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_76)
 			alloc(4)
 			buffer.writef32(outgoing_buff, outgoing_apos, Value["Duration"])
 			if Value["TextColor"] ~= nil then
@@ -2417,12 +2447,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
 			local bool_26 = 0
 			local bool_26_pos_1 = alloc(1)
-			local len_75 = #Value["Text"]
+			local len_77 = #Value["Text"]
 			assert(utf8.len(Value["Text"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_75)
-			alloc(len_75)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_75)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_77)
+			alloc(len_77)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_77)
 			alloc(4)
 			buffer.writef32(outgoing_buff, outgoing_apos, Value["Duration"])
 			if Value["TextColor"] ~= nil then
@@ -2467,12 +2497,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 3)
 			local bool_27 = 0
 			local bool_27_pos_1 = alloc(1)
-			local len_76 = #Value["Text"]
+			local len_78 = #Value["Text"]
 			assert(utf8.len(Value["Text"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_76)
-			alloc(len_76)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_76)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_78)
+			alloc(len_78)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Text"], len_78)
 			alloc(4)
 			buffer.writef32(outgoing_buff, outgoing_apos, Value["Duration"])
 			if Value["TextColor"] ~= nil then
@@ -2538,18 +2568,18 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
 			local bool_28 = 0
 			local bool_28_pos_1 = alloc(1)
-			local len_77 = #Value["ID"]
+			local len_79 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_77)
-			alloc(len_77)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_77)
-			local len_78 = #Value["Name"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_79)
+			alloc(len_79)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_79)
+			local len_80 = #Value["Name"]
 			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_78)
-			alloc(len_78)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_78)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_80)
+			alloc(len_80)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_80)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["Capacity"])
 			alloc(8)
@@ -2588,18 +2618,18 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
 			local bool_29 = 0
 			local bool_29_pos_1 = alloc(1)
-			local len_79 = #Value["ID"]
+			local len_81 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_79)
-			alloc(len_79)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_79)
-			local len_80 = #Value["Name"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_81)
+			alloc(len_81)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_81)
+			local len_82 = #Value["Name"]
 			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_80)
-			alloc(len_80)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_80)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_82)
+			alloc(len_82)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_82)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["Capacity"])
 			alloc(8)
@@ -2645,18 +2675,18 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
 			local bool_30 = 0
 			local bool_30_pos_1 = alloc(1)
-			local len_81 = #Value["ID"]
+			local len_83 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_81)
-			alloc(len_81)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_81)
-			local len_82 = #Value["Name"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_83)
+			alloc(len_83)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_83)
+			local len_84 = #Value["Name"]
 			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_82)
-			alloc(len_82)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_82)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_84)
+			alloc(len_84)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_84)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["Capacity"])
 			alloc(8)
@@ -2704,18 +2734,18 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
 			local bool_31 = 0
 			local bool_31_pos_1 = alloc(1)
-			local len_83 = #Value["ID"]
+			local len_85 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_83)
-			alloc(len_83)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_83)
-			local len_84 = #Value["Name"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_85)
+			alloc(len_85)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_85)
+			local len_86 = #Value["Name"]
 			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_84)
-			alloc(len_84)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_84)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_86)
+			alloc(len_86)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_86)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["Capacity"])
 			alloc(8)
@@ -2761,18 +2791,18 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 7)
 			local bool_32 = 0
 			local bool_32_pos_1 = alloc(1)
-			local len_85 = #Value["ID"]
+			local len_87 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_85)
-			alloc(len_85)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_85)
-			local len_86 = #Value["Name"]
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_87)
+			alloc(len_87)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_87)
+			local len_88 = #Value["Name"]
 			assert(utf8.len(Value["Name"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_86)
-			alloc(len_86)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_86)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_88)
+			alloc(len_88)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Name"], len_88)
 			alloc(8)
 			buffer.writef64(outgoing_buff, outgoing_apos, Value["Capacity"])
 			alloc(8)
@@ -2818,25 +2848,25 @@ local returns = {
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
-			local len_87 = #Value
+			local len_89 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_87)
-			for i_11 = 1, len_87 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_89)
+			for i_11 = 1, len_89 do
 				local bool_33 = 0
 				local bool_33_pos_1 = alloc(1)
 				local val_11 = Value[i_11]
-				local len_88 = #val_11["ID"]
+				local len_90 = #val_11["ID"]
 				assert(utf8.len(val_11["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_88)
-				alloc(len_88)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_11["ID"], len_88)
-				local len_89 = #val_11["Name"]
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_90)
+				alloc(len_90)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_11["ID"], len_90)
+				local len_91 = #val_11["Name"]
 				assert(utf8.len(val_11["Name"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_89)
-				alloc(len_89)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_11["Name"], len_89)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_91)
+				alloc(len_91)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_11["Name"], len_91)
 				alloc(8)
 				buffer.writef64(outgoing_buff, outgoing_apos, val_11["Capacity"])
 				alloc(8)
@@ -2874,25 +2904,25 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
-			local len_90 = #Value
+			local len_92 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_90)
-			for i_12 = 1, len_90 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_92)
+			for i_12 = 1, len_92 do
 				local bool_34 = 0
 				local bool_34_pos_1 = alloc(1)
 				local val_12 = Value[i_12]
-				local len_91 = #val_12["ID"]
+				local len_93 = #val_12["ID"]
 				assert(utf8.len(val_12["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_91)
-				alloc(len_91)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_12["ID"], len_91)
-				local len_92 = #val_12["Name"]
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_93)
+				alloc(len_93)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_12["ID"], len_93)
+				local len_94 = #val_12["Name"]
 				assert(utf8.len(val_12["Name"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_92)
-				alloc(len_92)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_12["Name"], len_92)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_94)
+				alloc(len_94)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_12["Name"], len_94)
 				alloc(8)
 				buffer.writef64(outgoing_buff, outgoing_apos, val_12["Capacity"])
 				alloc(8)
@@ -2937,25 +2967,25 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
-			local len_93 = #Value
+			local len_95 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_93)
-			for i_13 = 1, len_93 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_95)
+			for i_13 = 1, len_95 do
 				local bool_35 = 0
 				local bool_35_pos_1 = alloc(1)
 				local val_13 = Value[i_13]
-				local len_94 = #val_13["ID"]
+				local len_96 = #val_13["ID"]
 				assert(utf8.len(val_13["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_94)
-				alloc(len_94)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_13["ID"], len_94)
-				local len_95 = #val_13["Name"]
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_96)
+				alloc(len_96)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_13["ID"], len_96)
+				local len_97 = #val_13["Name"]
 				assert(utf8.len(val_13["Name"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_95)
-				alloc(len_95)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_13["Name"], len_95)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_97)
+				alloc(len_97)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_13["Name"], len_97)
 				alloc(8)
 				buffer.writef64(outgoing_buff, outgoing_apos, val_13["Capacity"])
 				alloc(8)
@@ -3002,25 +3032,25 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
-			local len_96 = #Value
+			local len_98 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_96)
-			for i_14 = 1, len_96 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_98)
+			for i_14 = 1, len_98 do
 				local bool_36 = 0
 				local bool_36_pos_1 = alloc(1)
 				local val_14 = Value[i_14]
-				local len_97 = #val_14["ID"]
+				local len_99 = #val_14["ID"]
 				assert(utf8.len(val_14["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_97)
-				alloc(len_97)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_14["ID"], len_97)
-				local len_98 = #val_14["Name"]
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_99)
+				alloc(len_99)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_14["ID"], len_99)
+				local len_100 = #val_14["Name"]
 				assert(utf8.len(val_14["Name"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_98)
-				alloc(len_98)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_14["Name"], len_98)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_100)
+				alloc(len_100)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_14["Name"], len_100)
 				alloc(8)
 				buffer.writef64(outgoing_buff, outgoing_apos, val_14["Capacity"])
 				alloc(8)
@@ -3065,25 +3095,25 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 6)
-			local len_99 = #Value
+			local len_101 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_99)
-			for i_15 = 1, len_99 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_101)
+			for i_15 = 1, len_101 do
 				local bool_37 = 0
 				local bool_37_pos_1 = alloc(1)
 				local val_15 = Value[i_15]
-				local len_100 = #val_15["ID"]
+				local len_102 = #val_15["ID"]
 				assert(utf8.len(val_15["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_100)
-				alloc(len_100)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_15["ID"], len_100)
-				local len_101 = #val_15["Name"]
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_102)
+				alloc(len_102)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_15["ID"], len_102)
+				local len_103 = #val_15["Name"]
 				assert(utf8.len(val_15["Name"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_101)
-				alloc(len_101)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_15["Name"], len_101)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_103)
+				alloc(len_103)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_15["Name"], len_103)
 				alloc(8)
 				buffer.writef64(outgoing_buff, outgoing_apos, val_15["Capacity"])
 				alloc(8)
@@ -3128,12 +3158,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
 			local bool_38 = 0
 			local bool_38_pos_1 = alloc(1)
-			local len_102 = #Value["ID"]
+			local len_104 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_102)
-			alloc(len_102)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_102)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_104)
+			alloc(len_104)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_104)
 			if Value["Eater"] ~= nil then
 				bool_38 = bit32.bor(bool_38, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["Eater"])
@@ -3150,12 +3180,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
 			local bool_39 = 0
 			local bool_39_pos_1 = alloc(1)
-			local len_103 = #Value["ID"]
+			local len_105 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_103)
-			alloc(len_103)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_103)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_105)
+			alloc(len_105)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_105)
 			if Value["Eater"] ~= nil then
 				bool_39 = bit32.bor(bool_39, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["Eater"])
@@ -3179,12 +3209,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
 			local bool_40 = 0
 			local bool_40_pos_1 = alloc(1)
-			local len_104 = #Value["ID"]
+			local len_106 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_104)
-			alloc(len_104)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_104)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_106)
+			alloc(len_106)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_106)
 			if Value["Eater"] ~= nil then
 				bool_40 = bit32.bor(bool_40, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["Eater"])
@@ -3210,12 +3240,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
 			local bool_41 = 0
 			local bool_41_pos_1 = alloc(1)
-			local len_105 = #Value["ID"]
+			local len_107 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_105)
-			alloc(len_105)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_105)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_107)
+			alloc(len_107)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_107)
 			if Value["Eater"] ~= nil then
 				bool_41 = bit32.bor(bool_41, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["Eater"])
@@ -3239,12 +3269,12 @@ local returns = {
 			buffer.writeu8(outgoing_buff, outgoing_apos, 10)
 			local bool_42 = 0
 			local bool_42_pos_1 = alloc(1)
-			local len_106 = #Value["ID"]
+			local len_108 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_106)
-			alloc(len_106)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_106)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_108)
+			alloc(len_108)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_108)
 			if Value["Eater"] ~= nil then
 				bool_42 = bit32.bor(bool_42, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["Eater"])
@@ -3267,12 +3297,12 @@ local returns = {
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 8)
-			local len_107 = #Value["ID"]
+			local len_109 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_107)
-			alloc(len_107)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_107)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_109)
+			alloc(len_109)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_109)
 			player_map[Player] = save()
 		end,
 		FireAll = function(Value: ({
@@ -3281,12 +3311,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 8)
-			local len_108 = #Value["ID"]
+			local len_110 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_108)
-			alloc(len_108)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_108)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_110)
+			alloc(len_110)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_110)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				load_player(player)
@@ -3302,12 +3332,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 8)
-			local len_109 = #Value["ID"]
+			local len_111 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_109)
-			alloc(len_109)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_109)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_111)
+			alloc(len_111)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_111)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in Players:GetPlayers() do
 				if player ~= Except then
@@ -3325,12 +3355,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 8)
-			local len_110 = #Value["ID"]
+			local len_112 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_110)
-			alloc(len_110)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_110)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_112)
+			alloc(len_112)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_112)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for _, player in List do
 				load_player(player)
@@ -3346,12 +3376,12 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 8)
-			local len_111 = #Value["ID"]
+			local len_113 = #Value["ID"]
 			assert(utf8.len(Value["ID"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_111)
-			alloc(len_111)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_111)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_113)
+			alloc(len_113)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["ID"], len_113)
 			local buff, used, inst = outgoing_buff, outgoing_used, outgoing_inst
 			for player in Set do
 				load_player(player)
@@ -3370,17 +3400,17 @@ local returns = {
 			load_player(Player)
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
-			local len_112 = #Value
+			local len_114 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_112)
-			for i_16 = 1, len_112 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_114)
+			for i_16 = 1, len_114 do
 				local val_16 = Value[i_16]
-				local len_113 = #val_16["ID"]
+				local len_115 = #val_16["ID"]
 				assert(utf8.len(val_16["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_113)
-				alloc(len_113)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_16["ID"], len_113)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_115)
+				alloc(len_115)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_16["ID"], len_115)
 				alloc(8)
 				buffer.writef64(outgoing_buff, outgoing_apos, val_16["Capacity"])
 			end
@@ -3393,17 +3423,17 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
-			local len_114 = #Value
+			local len_116 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_114)
-			for i_17 = 1, len_114 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_116)
+			for i_17 = 1, len_116 do
 				local val_17 = Value[i_17]
-				local len_115 = #val_17["ID"]
+				local len_117 = #val_17["ID"]
 				assert(utf8.len(val_17["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_115)
-				alloc(len_115)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_17["ID"], len_115)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_117)
+				alloc(len_117)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_17["ID"], len_117)
 				alloc(8)
 				buffer.writef64(outgoing_buff, outgoing_apos, val_17["Capacity"])
 			end
@@ -3423,17 +3453,17 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
-			local len_116 = #Value
+			local len_118 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_116)
-			for i_18 = 1, len_116 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_118)
+			for i_18 = 1, len_118 do
 				local val_18 = Value[i_18]
-				local len_117 = #val_18["ID"]
+				local len_119 = #val_18["ID"]
 				assert(utf8.len(val_18["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_117)
-				alloc(len_117)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_18["ID"], len_117)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_119)
+				alloc(len_119)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_18["ID"], len_119)
 				alloc(8)
 				buffer.writef64(outgoing_buff, outgoing_apos, val_18["Capacity"])
 			end
@@ -3455,17 +3485,17 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
-			local len_118 = #Value
+			local len_120 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_118)
-			for i_19 = 1, len_118 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_120)
+			for i_19 = 1, len_120 do
 				local val_19 = Value[i_19]
-				local len_119 = #val_19["ID"]
+				local len_121 = #val_19["ID"]
 				assert(utf8.len(val_19["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_119)
-				alloc(len_119)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_19["ID"], len_119)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_121)
+				alloc(len_121)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_19["ID"], len_121)
 				alloc(8)
 				buffer.writef64(outgoing_buff, outgoing_apos, val_19["Capacity"])
 			end
@@ -3485,17 +3515,17 @@ local returns = {
 			load_empty()
 			alloc(1)
 			buffer.writeu8(outgoing_buff, outgoing_apos, 9)
-			local len_120 = #Value
+			local len_122 = #Value
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_120)
-			for i_20 = 1, len_120 do
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_122)
+			for i_20 = 1, len_122 do
 				local val_20 = Value[i_20]
-				local len_121 = #val_20["ID"]
+				local len_123 = #val_20["ID"]
 				assert(utf8.len(val_20["ID"]) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_121)
-				alloc(len_121)
-				buffer.writestring(outgoing_buff, outgoing_apos, val_20["ID"], len_121)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_123)
+				alloc(len_123)
+				buffer.writestring(outgoing_buff, outgoing_apos, val_20["ID"], len_123)
 				alloc(8)
 				buffer.writef64(outgoing_buff, outgoing_apos, val_20["Capacity"])
 			end
@@ -3509,14 +3539,22 @@ local returns = {
 			end
 		end,
 	},
+	EquipTool = {
+		SetCallback = function(Callback: (Player: Player, Value: (string)) -> ()): () -> ()
+			reliable_events[9] = Callback
+			return function()
+				reliable_events[9] = nil
+			end
+		end,
+	},
 	EditTutorial = {
 		SetCallback = function(Callback: (Player: Player, Value: ({
 			["Key"]: (string),
 			["Value"]: ((unknown)),
 		})) -> ()): () -> ()
-			reliable_events[10] = Callback
+			reliable_events[12] = Callback
 			return function()
-				reliable_events[10] = nil
+				reliable_events[12] = nil
 			end
 		end,
 	},
@@ -3540,12 +3578,12 @@ local returns = {
 			local bool_43 = 0
 			local bool_43_pos_1 = alloc(1)
 			table.insert(outgoing_inst, Value["Player"])
-			local len_122 = #Value["Key"]
+			local len_124 = #Value["Key"]
 			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_122)
-			alloc(len_122)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_122)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_124)
+			alloc(len_124)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_124)
 			if Value["Value"] ~= nil then
 				bool_43 = bit32.bor(bool_43, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["Value"])
@@ -3564,12 +3602,12 @@ local returns = {
 			local bool_44 = 0
 			local bool_44_pos_1 = alloc(1)
 			table.insert(outgoing_inst, Value["Player"])
-			local len_123 = #Value["Key"]
+			local len_125 = #Value["Key"]
 			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_123)
-			alloc(len_123)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_123)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_125)
+			alloc(len_125)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_125)
 			if Value["Value"] ~= nil then
 				bool_44 = bit32.bor(bool_44, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["Value"])
@@ -3595,12 +3633,12 @@ local returns = {
 			local bool_45 = 0
 			local bool_45_pos_1 = alloc(1)
 			table.insert(outgoing_inst, Value["Player"])
-			local len_124 = #Value["Key"]
+			local len_126 = #Value["Key"]
 			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_124)
-			alloc(len_124)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_124)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_126)
+			alloc(len_126)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_126)
 			if Value["Value"] ~= nil then
 				bool_45 = bit32.bor(bool_45, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["Value"])
@@ -3628,12 +3666,12 @@ local returns = {
 			local bool_46 = 0
 			local bool_46_pos_1 = alloc(1)
 			table.insert(outgoing_inst, Value["Player"])
-			local len_125 = #Value["Key"]
+			local len_127 = #Value["Key"]
 			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_125)
-			alloc(len_125)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_125)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_127)
+			alloc(len_127)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_127)
 			if Value["Value"] ~= nil then
 				bool_46 = bit32.bor(bool_46, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["Value"])
@@ -3659,12 +3697,12 @@ local returns = {
 			local bool_47 = 0
 			local bool_47_pos_1 = alloc(1)
 			table.insert(outgoing_inst, Value["Player"])
-			local len_126 = #Value["Key"]
+			local len_128 = #Value["Key"]
 			assert(utf8.len(Value["Key"]) ~= nil, "value is not valid utf-8")
 			alloc(2)
-			buffer.writeu16(outgoing_buff, outgoing_apos, len_126)
-			alloc(len_126)
-			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_126)
+			buffer.writeu16(outgoing_buff, outgoing_apos, len_128)
+			alloc(len_128)
+			buffer.writestring(outgoing_buff, outgoing_apos, Value["Key"], len_128)
 			if Value["Value"] ~= nil then
 				bool_47 = bit32.bor(bool_47, 0b0000000000000001)
 				table.insert(outgoing_inst, Value["Value"])
@@ -3692,20 +3730,20 @@ local returns = {
 			local bool_48_pos_1 = alloc(1)
 			table.insert(outgoing_inst, Value["Player"])
 			local len_pos_1
-			local len_127 = 0
+			local len_129 = 0
 			for k_1, v_1 in Value["Data"] do
-				if len_127 == 0 then
+				if len_129 == 0 then
 					len_pos_1 = alloc(2)
 				end
 				local bool_49 = 0
 				local bool_49_pos_1 = alloc(1)
-				len_127 = len_127 + 1
-				local len_128 = #k_1
+				len_129 = len_129 + 1
+				local len_130 = #k_1
 				assert(utf8.len(k_1) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_128)
-				alloc(len_128)
-				buffer.writestring(outgoing_buff, outgoing_apos, k_1, len_128)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_130)
+				alloc(len_130)
+				buffer.writestring(outgoing_buff, outgoing_apos, k_1, len_130)
 				if v_1 ~= nil then
 					bool_49 = bit32.bor(bool_49, 0b0000000000000001)
 					table.insert(outgoing_inst, v_1)
@@ -3713,7 +3751,7 @@ local returns = {
 				buffer.writeu8(outgoing_buff, bool_49_pos_1, bool_49)
 			end
 			if len_pos_1 then
-				buffer.writeu16(outgoing_buff, len_pos_1, len_127 - 1)
+				buffer.writeu16(outgoing_buff, len_pos_1, len_129 - 1)
 			else
 				bool_48 = bit32.bor(bool_48, 0b0000000000000001)
 			end
@@ -3731,20 +3769,20 @@ local returns = {
 			local bool_50_pos_1 = alloc(1)
 			table.insert(outgoing_inst, Value["Player"])
 			local len_pos_2
-			local len_129 = 0
+			local len_131 = 0
 			for k_2, v_2 in Value["Data"] do
-				if len_129 == 0 then
+				if len_131 == 0 then
 					len_pos_2 = alloc(2)
 				end
 				local bool_51 = 0
 				local bool_51_pos_1 = alloc(1)
-				len_129 = len_129 + 1
-				local len_130 = #k_2
+				len_131 = len_131 + 1
+				local len_132 = #k_2
 				assert(utf8.len(k_2) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_130)
-				alloc(len_130)
-				buffer.writestring(outgoing_buff, outgoing_apos, k_2, len_130)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_132)
+				alloc(len_132)
+				buffer.writestring(outgoing_buff, outgoing_apos, k_2, len_132)
 				if v_2 ~= nil then
 					bool_51 = bit32.bor(bool_51, 0b0000000000000001)
 					table.insert(outgoing_inst, v_2)
@@ -3752,7 +3790,7 @@ local returns = {
 				buffer.writeu8(outgoing_buff, bool_51_pos_1, bool_51)
 			end
 			if len_pos_2 then
-				buffer.writeu16(outgoing_buff, len_pos_2, len_129 - 1)
+				buffer.writeu16(outgoing_buff, len_pos_2, len_131 - 1)
 			else
 				bool_50 = bit32.bor(bool_50, 0b0000000000000001)
 			end
@@ -3777,20 +3815,20 @@ local returns = {
 			local bool_52_pos_1 = alloc(1)
 			table.insert(outgoing_inst, Value["Player"])
 			local len_pos_3
-			local len_131 = 0
+			local len_133 = 0
 			for k_3, v_3 in Value["Data"] do
-				if len_131 == 0 then
+				if len_133 == 0 then
 					len_pos_3 = alloc(2)
 				end
 				local bool_53 = 0
 				local bool_53_pos_1 = alloc(1)
-				len_131 = len_131 + 1
-				local len_132 = #k_3
+				len_133 = len_133 + 1
+				local len_134 = #k_3
 				assert(utf8.len(k_3) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_132)
-				alloc(len_132)
-				buffer.writestring(outgoing_buff, outgoing_apos, k_3, len_132)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_134)
+				alloc(len_134)
+				buffer.writestring(outgoing_buff, outgoing_apos, k_3, len_134)
 				if v_3 ~= nil then
 					bool_53 = bit32.bor(bool_53, 0b0000000000000001)
 					table.insert(outgoing_inst, v_3)
@@ -3798,7 +3836,7 @@ local returns = {
 				buffer.writeu8(outgoing_buff, bool_53_pos_1, bool_53)
 			end
 			if len_pos_3 then
-				buffer.writeu16(outgoing_buff, len_pos_3, len_131 - 1)
+				buffer.writeu16(outgoing_buff, len_pos_3, len_133 - 1)
 			else
 				bool_52 = bit32.bor(bool_52, 0b0000000000000001)
 			end
@@ -3825,20 +3863,20 @@ local returns = {
 			local bool_54_pos_1 = alloc(1)
 			table.insert(outgoing_inst, Value["Player"])
 			local len_pos_4
-			local len_133 = 0
+			local len_135 = 0
 			for k_4, v_4 in Value["Data"] do
-				if len_133 == 0 then
+				if len_135 == 0 then
 					len_pos_4 = alloc(2)
 				end
 				local bool_55 = 0
 				local bool_55_pos_1 = alloc(1)
-				len_133 = len_133 + 1
-				local len_134 = #k_4
+				len_135 = len_135 + 1
+				local len_136 = #k_4
 				assert(utf8.len(k_4) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_134)
-				alloc(len_134)
-				buffer.writestring(outgoing_buff, outgoing_apos, k_4, len_134)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_136)
+				alloc(len_136)
+				buffer.writestring(outgoing_buff, outgoing_apos, k_4, len_136)
 				if v_4 ~= nil then
 					bool_55 = bit32.bor(bool_55, 0b0000000000000001)
 					table.insert(outgoing_inst, v_4)
@@ -3846,7 +3884,7 @@ local returns = {
 				buffer.writeu8(outgoing_buff, bool_55_pos_1, bool_55)
 			end
 			if len_pos_4 then
-				buffer.writeu16(outgoing_buff, len_pos_4, len_133 - 1)
+				buffer.writeu16(outgoing_buff, len_pos_4, len_135 - 1)
 			else
 				bool_54 = bit32.bor(bool_54, 0b0000000000000001)
 			end
@@ -3871,20 +3909,20 @@ local returns = {
 			local bool_56_pos_1 = alloc(1)
 			table.insert(outgoing_inst, Value["Player"])
 			local len_pos_5
-			local len_135 = 0
+			local len_137 = 0
 			for k_5, v_5 in Value["Data"] do
-				if len_135 == 0 then
+				if len_137 == 0 then
 					len_pos_5 = alloc(2)
 				end
 				local bool_57 = 0
 				local bool_57_pos_1 = alloc(1)
-				len_135 = len_135 + 1
-				local len_136 = #k_5
+				len_137 = len_137 + 1
+				local len_138 = #k_5
 				assert(utf8.len(k_5) ~= nil, "value is not valid utf-8")
 				alloc(2)
-				buffer.writeu16(outgoing_buff, outgoing_apos, len_136)
-				alloc(len_136)
-				buffer.writestring(outgoing_buff, outgoing_apos, k_5, len_136)
+				buffer.writeu16(outgoing_buff, outgoing_apos, len_138)
+				alloc(len_138)
+				buffer.writestring(outgoing_buff, outgoing_apos, k_5, len_138)
 				if v_5 ~= nil then
 					bool_57 = bit32.bor(bool_57, 0b0000000000000001)
 					table.insert(outgoing_inst, v_5)
@@ -3892,7 +3930,7 @@ local returns = {
 				buffer.writeu8(outgoing_buff, bool_57_pos_1, bool_57)
 			end
 			if len_pos_5 then
-				buffer.writeu16(outgoing_buff, len_pos_5, len_135 - 1)
+				buffer.writeu16(outgoing_buff, len_pos_5, len_137 - 1)
 			else
 				bool_56 = bit32.bor(bool_56, 0b0000000000000001)
 			end
@@ -3914,17 +3952,17 @@ local returns = {
 			["Success"]: (boolean),
 			["Amount"]: (number),
 		}))): () -> ()
-			reliable_events[12] = Callback
+			reliable_events[14] = Callback
 			return function()
-				reliable_events[12] = nil
+				reliable_events[14] = nil
 			end
 		end,
 	},
 	ChangeSetting = {
 		SetCallback = function(Callback: (Player: Player, Value: (string)) -> ((boolean))): () -> ()
-			reliable_events[9] = Callback
+			reliable_events[11] = Callback
 			return function()
-				reliable_events[9] = nil
+				reliable_events[11] = nil
 			end
 		end,
 	},

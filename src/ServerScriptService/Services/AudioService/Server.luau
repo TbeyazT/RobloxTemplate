@@ -1,7 +1,7 @@
 local Players           = game:GetService("Players")
 
 local Dumpster = require("@Pckgs/Dumpster")
-local Net = require("@SSS/Net")
+local Net = require("@SSS/Constants/Net")
 
 local AudioService = {}
 

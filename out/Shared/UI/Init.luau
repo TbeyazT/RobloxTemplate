@@ -1,8 +1,8 @@
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
-local React = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packages'):FindFirstChild('React'))
 local ReactRoblox = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packages'):FindFirstChild('ReactRoblox'))
+local React = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packages'):FindFirstChild('React'))
 
 export type UIModule = {
     Name: string,
@@ -126,6 +126,7 @@ function UI:Init()
 		end
 	end
 
+	mainGui.Name = HttpService:GenerateGUID()
 	self._hasStarted = true
 	self._loadedModules = screensToLoad  
 	print(PREFIX .. " UI System Fully Booted.")

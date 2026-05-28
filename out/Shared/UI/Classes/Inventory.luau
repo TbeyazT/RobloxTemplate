@@ -1,12 +1,9 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 local Players = game:GetService("Players")
-
-local Assets = ReplicatedStorage:WaitForChild("Assets")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
 
-local ReactSpring = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packages'):FindFirstChild('ReactSpring'))
 local RunContext = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packages'):FindFirstChild('RunContext'))
 local Trove = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packages'):FindFirstChild('Trove'))
 local React = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packages'):FindFirstChild('React'))
@@ -14,6 +11,7 @@ local React = require(game:GetService('ReplicatedStorage'):FindFirstChild('Packa
 local Button = require(script.Parent.Parent.Parent:FindFirstChild('Classes'):FindFirstChild('UI'):FindFirstChild('Button'))
 
 local CharacterController = require(script.Parent.Parent.Parent:FindFirstChild('Controllers'):FindFirstChild('CharacterController'):FindFirstChild('Client'))
+local ToolController = require(script.Parent.Parent.Parent:FindFirstChild('Controllers'):FindFirstChild('ToolController'):FindFirstChild('Client'))
 local ToolUtils = require(script.Parent.Parent.Parent:FindFirstChild('Controllers'):FindFirstChild('ToolController'):FindFirstChild('Utils'))
 
 if RunContext.IsEdit then
@@ -39,9 +37,7 @@ local numberWords = {
 
 local function ToolTemplate(properties)
     local newFont = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold)
-
     local viewportRef = React.useRef(nil :: ViewportFrame?)
-
     local toolProperties = ToolUtils:GetToolProperties(properties.Name)
 
     React.useEffect(function()
@@ -53,10 +49,10 @@ local function ToolTemplate(properties)
             local modelClone = toolModel:Clone()
             modelClone.Parent = viewport.WorldModel
             modelClone:PivotTo(CFrame.new(0, 0, 0))
+            
             local camera = Instance.new("Camera")
             camera.Parent = viewport
             viewport.CurrentCamera = camera
-
             camera.CFrame = toolProperties.Viewport.CameraCFrame
 
             return function()
@@ -74,14 +70,10 @@ local function ToolTemplate(properties)
         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
         LayoutOrder = properties.Index,
         OnClick = function()
-            local characterData = CharacterController:GetPlayerData()
-            if characterData and characterData.Humanoid then
-                local humanoid: Humanoid = characterData.Humanoid
-                if properties.Tool and properties.Tool.Parent == LocalPlayer.Backpack then
-                    humanoid:EquipTool(properties.Tool)
-                elseif properties.Tool and properties.Tool.Parent == LocalPlayer.Character then
-                    humanoid:UnequipTools()
-                end
+            if properties.Equipped then
+                ToolController:UnequipTool(properties.Name)
+            else
+                ToolController:EquipTool(properties.Name)
             end
         end,
         KeyCode = Enum.KeyCode[numberWords[properties.Index] ],
@@ -158,49 +150,50 @@ local function App()
 
     React.useEffect(function()
         local cleanTrove = Trove.new()
-        local backpack = LocalPlayer:WaitForChild("Backpack")
+        local toolPropertiesFolder = ReplicatedStorage:WaitForChild("Assets"):WaitForChild("ToolProperties")
         
         local toolSlots = {} 
+        local occupiedSlots = {}
 
         local function updateTools()
-            local activeTools = {}
+            local ownedTools = {}
             local equippedTools = {}
 
-            for _, tool in ipairs(backpack:GetChildren()) do
-                if tool:IsA("Tool") then
-                    table.insert(activeTools, tool)
+            local characterData = CharacterController:GetPlayerData()
+            if characterData and characterData.Inventory then
+                ownedTools = characterData.Inventory
+            else
+                for _, child in ipairs(toolPropertiesFolder:GetChildren()) do
+                    if child:IsA("ModuleScript") then
+                        table.insert(ownedTools, child.Name)
+                    end
                 end
             end
 
             local character = LocalPlayer.Character
             if character then
-                for _, tool in ipairs(character:GetChildren()) do
-                    if tool:IsA("Tool") then
-                        table.insert(activeTools, tool)
-                        equippedTools[tool] = true
+                for _, toolName in ipairs(ownedTools) do
+                    if character:FindFirstChild(toolName) then
+                        equippedTools[toolName] = true
                     end
                 end
             end
 
             local activeLookup = {}
-            for _, tool in ipairs(activeTools) do
-                activeLookup[tool] = true
+            for _, toolName in ipairs(ownedTools) do
+                activeLookup[toolName] = true
             end
 
-            for tool, slot in pairs(toolSlots) do
-                if not activeLookup[tool] then
-                    toolSlots[tool] = nil
+            for toolName, slot in pairs(toolSlots) do
+                if not activeLookup[toolName] then
+                    toolSlots[toolName] = nil
+                    occupiedSlots[slot] = nil
                 end
             end
 
-            local occupiedSlots = {}
-            for _, slot in pairs(toolSlots) do
-                occupiedSlots[slot] = true
-            end
-
             local startSlot = RunContext.IsEdit and 2 or 1
-            for _, tool in ipairs(activeTools) do
-                if not toolSlots[tool] then
+            for _, toolName in ipairs(ownedTools) do
+                if not toolSlots[toolName] then
                     local assignedSlot = nil
                     for i = startSlot, 10 do
                         if not occupiedSlots[i] then
@@ -210,7 +203,7 @@ local function App()
                     end
                     
                     if assignedSlot then
-                        toolSlots[tool] = assignedSlot
+                        toolSlots[toolName] = assignedSlot
                         occupiedSlots[assignedSlot] = true
                     end
                 end
@@ -221,17 +214,17 @@ local function App()
                 table.insert(updatedList, {
                     Name = "ClassicSword",
                     Index = 1,
-                    Tool = {TextureId = "rbxasset://Textures/Sword128.png"},
+                    Tool = nil,
                     Equipped = false,
                 })
             end
 
-            for tool, slot in pairs(toolSlots) do
+            for toolName, slot in pairs(toolSlots) do
                 table.insert(updatedList, {
-                    Name = tool.Name,
+                    Name = toolName,
                     Index = slot,
-                    Tool = tool,
-                    Equipped = not not equippedTools[tool],
+                    Tool = toolName,
+                    Equipped = not not equippedTools[toolName],
                 })
             end
 
@@ -241,9 +234,6 @@ local function App()
 
             setTools(updatedList)
         end
-
-        cleanTrove:Connect(backpack.ChildAdded, updateTools)
-        cleanTrove:Connect(backpack.ChildRemoved, updateTools)
 
         local characterTrove = cleanTrove:Extend()
         local function onCharacterAdded(char)
@@ -282,7 +272,7 @@ local function App()
     end
 
     return React.createElement("Frame",{
-        Name = math.random()*100/math.pi,
+        Name = "HotbarFrame",
         AnchorPoint = Vector2.new(0.5, 1),
         Size = UDim2.fromScale(0.464, 0.124),
         Position = UDim2.fromScale(0.5, 1),

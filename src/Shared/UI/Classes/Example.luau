@@ -7,8 +7,10 @@ CounterScreen.Order = 10
 
 local function CounterApp()
     local count, setCount = React.useState(0)
+    local visible, setVisible = React.useState(true)
     local hovered, setHovered = React.useState(false)
     local pressed, setPressed = React.useState(false)
+    local frameRef = React.useRef(nil :: Frame?)
 
     -- 1. Main Frame Entrance Animation (Slides up and fades in on mount)
     local frameStyles = ReactSpring.useSpring({
@@ -67,6 +69,8 @@ local function CounterApp()
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = Color3.fromRGB(35, 35, 40),
         BorderSizePixel = 0,
+        Visible = visible,
+        ref = frameRef,
     }, {
         UICorner = React.createElement("UICorner", {
             CornerRadius = UDim.new(0, 8),
@@ -114,6 +118,24 @@ local function CounterApp()
                 TextSize = 16,
                 TextScaled = true,
                 Font = Enum.Font.SourceSansSemibold,
+            }),
+        }),
+        XButton = React.createElement("ImageButton",{
+            Size = UDim2.fromScale(0.1, 0.1),
+            Position = UDim2.fromScale(1,0),
+            AnchorPoint = Vector2.new(1,0),
+            BackgroundTransparency = 1,
+            [React.Event.Activated] = function()
+                setVisible(not visible)
+            end,
+        }, {
+            Label = React.createElement("TextLabel", {
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundTransparency = 1,
+                Text = "X",
+                TextColor3 = Color3.fromRGB(255, 100, 100),
+                TextScaled = true,
+                Font = Enum.Font.SourceSansBold,
             }),
         })
     })
