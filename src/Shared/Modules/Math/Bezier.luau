@@ -3,6 +3,10 @@
 
 local Bezier = {}
 
+function Bezier.lerp(a: Vector3, b: Vector3, t: number): Vector3
+	return a + (b - a) * t
+end
+
 -- Quadratic Bezier (3 Points: Start, Control, End)
 -- 't' is the alpha/percentage along the line (0 to 1)
 function Bezier.Quadratic(p0: Vector3, p1: Vector3, p2: Vector3, t: number): Vector3
