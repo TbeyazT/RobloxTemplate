@@ -1,13 +1,13 @@
 return {
 	Name = "Dex";
-	Aliases = {"dex"};
-	Description = "Gives dex explorer.";
+	Aliases = {"dex", "explorer", "dexexplorer"};
+	Description = "Gives Dex Explorer to the specified player.";
 	Group = "DefaultAdmin";
 	Args = {
 		{
 			Type = "player";
 			Name = "player";
-			Description = "Dex explorer.";
+			Description = "The target player to receive Dex Explorer.";
 		},
 	};
 }

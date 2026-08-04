@@ -8,6 +8,10 @@ realm = "shared"
 React = "jsdotlua/react@17.1.0"
 ReactRoblox = "jsdotlua/react-roblox@17.1.0"
 ReactSpring = "amiizu/react-spring@0.0.1"
+Icon = "1foreverhd/topbarplus@3.4.0"
+
+Spr = "blackjackiee/spr@1.1.3"
+Ripple = "littensy/ripple@0.10.2"
 
 Promise = "cody-nelson/promise@4.0.1"
 
